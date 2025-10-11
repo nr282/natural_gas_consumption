@@ -54,7 +54,7 @@ Need to look at things correctly.
 try:
     import pandas as pd
     import numpy as np
-    from variational_framework import VariationalFramework, IntegralConstraintElement, IntegralConstraint
+    from data.eia_consumption.variational_framework import VariationalFramework, IntegralConstraintElement, IntegralConstraint
     from datetime import datetime, timedelta
     import calendar
     import math
@@ -62,7 +62,6 @@ try:
 except:
     import pandas as pd
     import numpy as np
-    from s3_bucket_lambda_code_upload.variational_framework import VariationalFramework, IntegralConstraintElement, IntegralConstraint
     from datetime import datetime, timedelta
     import calendar
     import math

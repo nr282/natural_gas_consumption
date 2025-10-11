@@ -26,17 +26,18 @@ import requests
 import logging
 import io
 import json
-from eia_api import read_eia_path
-from eia_geography_mappings import convert_native_name_to_standard_state_name
+from data.eia_consumption.eia_api import read_eia_path
+from data.eia_consumption.eia_geography_mappings import (convert_native_name_to_standard_state_name,
+                                                         get_fifty_us_states_and_dc,
+                                                         get_united_states_name)
 from datetime import datetime
-from pandas_add_on import solve_dataframe
-from eia_geography_mappings import get_fifty_us_states_and_dc, get_united_states_name
+from data.eia_consumption.pandas_add_on import solve_dataframe
 import math
-from pandas_add_on import solve_pandas_series
+from data.eia_consumption.pandas_add_on import solve_pandas_series
 from scipy import integrate
 import calendar
 import matplotlib.pyplot as plt
-from global_configurations import working_directory_location
+from data.eia_consumption.global_configurations import working_directory_location
 
 from ..weather import get_weather_data
 

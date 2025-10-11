@@ -70,7 +70,8 @@ class VirginiaPopulationData(population.PopulationData):
 
     def acquire_population_data(self):
         replacement_column_name = "County/State"
-        population_data = pd.read_csv(os.path.join(os.getcwd(), "..", "population", "virginia_population.csv"))
+        #C:\Users\nr282\PycharmProjects\PythonProject4\data\population\virginia_population.csv
+        population_data = pd.read_csv("C:\\Users\\nr282\\PycharmProjects\\PythonProject4\\data\\population\\virginia_population.csv")
         population_data.rename(columns={"Unnamed: 0": replacement_column_name}, inplace=True)
         population_data[replacement_column_name] = population_data[replacement_column_name].apply(
             lambda x: x[1:] if x[0] == "." else x)
@@ -107,7 +108,9 @@ class VirginiaPopulationData(population.PopulationData):
         Provides population data back for every date between (1) start_datetime and (2) end_datetime.
         """
 
-        loc_vals = self.df[self.df["longtitude"].apply(lambda x: abs(x - location[0]) < 0.05)]
+        loc_vals = self.df[self.df["longtitude"].apply(lambda x: (abs(x - location[0]) < 0.002))]
+        loc_vals = loc_vals[loc_vals["lattitude"].apply(lambda x: (abs(x - (-1 * location[1])) < 0.002))]
+
         if len(loc_vals) == 1:
             if all([year_str in loc_vals for year_str in ["2019",
                                                           "2020",
@@ -117,12 +120,12 @@ class VirginiaPopulationData(population.PopulationData):
                                                           "2024"]]):
 
 
-                vals = {"2019": int(loc_vals["2019"].iloc[0].replace(",", "")),
-                        "2020": int(loc_vals["2020"].iloc[0].replace(",", "")),
-                        "2021": int(loc_vals["2021"].iloc[0].replace(",", "")),
-                        "2022": int(loc_vals["2022"].iloc[0].replace(",", "")),
-                        "2023": int(loc_vals["2023"].iloc[0].replace(",", "")),
-                        "2024": int(loc_vals["2024"].iloc[0].replace(",", ""))
+                vals = {"2019": float(loc_vals["2019"].iloc[0].replace(",", "")),
+                        "2020": float(loc_vals["2020"].iloc[0].replace(",", "")),
+                        "2021": float(loc_vals["2021"].iloc[0].replace(",", "")),
+                        "2022": float(loc_vals["2022"].iloc[0].replace(",", "")),
+                        "2023": float(loc_vals["2023"].iloc[0].replace(",", "")),
+                        "2024": float(loc_vals["2024"].iloc[0].replace(",", ""))
                         }
 
                 s = pd.Series(vals)
@@ -140,6 +143,10 @@ class VirginiaPopulationData(population.PopulationData):
                 return df
 
         else:
+
+            import pdb
+            pdb.set_trace()
+
             raise ValueError("Multiple locations found.")
 
 if __name__ == "__main__":

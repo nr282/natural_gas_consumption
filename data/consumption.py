@@ -6,4 +6,3 @@ A significant amount of the code will be pulled from the Dirichlet project.
 
 """
 
-#TODO: from eia_consumption import eia_consumption

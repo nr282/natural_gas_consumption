@@ -84,22 +84,32 @@ def calculate_consumption_factor(population: PopulationData,
     weather_for_locations = weather_service.get_hdd(population_locations,
                                                     start_datetime,
                                                     end_datetime)
+
+    date_range = pd.date_range(start=start_datetime, end=end_datetime, freq="D")
     population_weighted_hdd = None
+    location_to_dfs = dict()
     for location in weather_for_locations:
-            pop = population.get_population_for_state_subregion_during_period(location,
-                                                                            start_datetime,
-                                                                            end_datetime)
-            hdd = weather_for_locations[location]
-            merged = pop.merge(hdd)
+        pop = population.get_population_for_state_subregion_during_period(location,
+                                                                        start_datetime,
+                                                                        end_datetime)
+        hdd = weather_for_locations[location]
+        location_df = pd.DataFrame(date_range, columns=["Date"])
+        merged_df = location_df.merge(pop, on="Date").merge(hdd, on="Date")
+        if len(merged_df) != len(merged_df.dropna()):
+            continue
+        else:
+            location_to_dfs[location] = merged_df
 
-            if population_weighted_hdd is None:
-                population_weighted_hdd = merged["Daily_Population"] * merged["HDD"]
-            else:
-                population_weighted_hdd += merged["Daily_Population"] * merged["HDD"]
+    result = pd.DataFrame(date_range, columns=["Date"])
+    result["Consumption_Factor"] = 0
+    for location in location_to_dfs:
+        location_df = location_to_dfs.get(location)
+        result["Consumption_Factor"] += location_df["Daily_Population"] * location_df["HDD"]
 
-    #TODO: Need to accumulate the relevant values.
-
-    return population_weighted_hdd
+    min_value = result["Consumption_Factor"].min()
+    max_value = result["Consumption_Factor"].max()
+    result["Consumption_Factor_Normalizied"] = result["Consumption_Factor"].apply(lambda x: (x - min_value) / (max_value - min_value))
+    return result
 
 
 
