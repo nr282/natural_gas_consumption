@@ -54,12 +54,9 @@ def calibration(consumption_factor,
             "alpha_mu": sensitivity_parameter,
             "alpha_sigma": 0.1 * sensitivity_parameter,
             "minimum_consumption_mu": minimum_consumption,
-            "minimum_consumption_sig": minimum_consumption,
+            "minimum_consumption_sig": 0.5 * minimum_consumption,
             "daily_consumption_error": daily_consumption_error,
             "monthly_consumption_error": monthly_consumption_error}
-
-
-
 
 def fit_slope(eia_monthly_time_series, state: str):
     """
