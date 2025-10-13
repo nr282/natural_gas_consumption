@@ -61,13 +61,33 @@ class ResidentialModel(Model):
         super().__init__(calibrated_parameters, parameter_list)
 
 
+    def _calculate_estimated_eia_monthly_data(self, idata):
+        """
+        Calculates the estimated eia monthly data via the relevant model
+        that was sampled.
+
+        :param idata:
+        :return:
+        """
+
+        eia_observations = idata.posterior.eia_observations
+        eia_observations_df = eia_observations.to_dataframe()
+        eia_observations_df = eia_observations_df.reset_index()
+        eia_observations_by_date = eia_observations_df.groupby(["dates"])["eia_observations"].mean().to_frame()
+        eia_observations_by_date["Day"] = eia_observations_by_date.index.to_series().apply(lambda x: x.day)
+        eia_observations_by_date["Month"] = eia_observations_by_date.index.to_series().apply(lambda x: x.month)
+        eia_observations_by_date["Year"] = eia_observations_by_date.index.to_series().apply(lambda x: x.year)
+        eia_observations_by_month = eia_observations_by_date.groupby(["Year", "Month"]).sum().reset_index()
+        eia_observations_by_month["Date"] = pd.to_datetime(eia_observations_by_month.apply(lambda row: datetime.datetime(int(row["Year"]), int(row["Month"]), 1), axis=1))
+        return eia_observations_by_date, eia_observations_by_month
+
     def inference(self,
                 start_datetime: str,
                 end_datetime: str,
                 eia_start_datetime: str,
                 eia_end_datetime: str,
                 params: dict,
-                data: dict) -> float:
+                data: dict):
         """
         Inference in the residential model.
 
@@ -84,7 +104,7 @@ class ResidentialModel(Model):
         coords = {
             "dates": list(dates),
         }
-
+        
         with pm.Model(coords=coords) as model:
             consumption_factor = pm.Normal("consumption_factor",
                                            mu=mean_consumption_factor,
@@ -98,7 +118,6 @@ class ResidentialModel(Model):
                                                   observed=consumption_factor_lagged_values.astype(np.float32),
                                                   dims="dates")
 
-            #TODO: Debug by doing bisection.
             logging.debug("Parameters are provided by: {params}".format(params=params))
 
             alpha = pm.Normal("alpha_1",
@@ -126,16 +145,11 @@ class ResidentialModel(Model):
                                                           state,
                                                           eia_monthly_start_date=eia_start_datetime,
                                                           eia_monthly_end_date=eia_end_datetime,
-                                                          sigma=params.get("daily_consumption_error"))
+                                                          sigma=params.get("monthly_consumption_error"))
 
-            idata = pm.sample(draws=1000, tune=1000)
-
-
-            #Develop utility function to aggregated data and compare to the full_eia_data
-            #Run the calculation here.
-
-            return
-
+            idata = pm.sample(draws=20, tune=20)
+            eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
+            return eia_estimated_daily_observations, estimated_estimated_monthly_data, params
 
     def get_params_for_model(self) -> dict:
         """
@@ -158,7 +172,8 @@ class ResidentialModel(Model):
                 "alpha_2_sigma": 1,
                 "minimum_consumption_mu": 0,
                 "minimum_consumption_sig": 0.1,
-                "daily_consumption_error": 0}
+                "daily_consumption_error": 0,
+                "monthly_consumption_error": 0.0}
 
 
 
@@ -183,11 +198,9 @@ def calculate_eia_monthly_consumption_constraints(model,
                                                   state: str,
                                                   eia_monthly_start_date="2022-01-01",
                                                   eia_monthly_end_date="2024-01-01",
-                                                  sigma=1000):
+                                                  sigma=10):
     """
     Calculate eia monthly consumption constraints.
-
-
     """
 
 
@@ -216,10 +229,11 @@ def calculate_eia_monthly_consumption_constraints(model,
             for date in consumption_factor_to_index:
                 if (start_month_dt <= date) and (date <= end_of_month_datetime):
                     indicies.append(consumption_factor_to_index[date])
+
             constraint_random_variable = pm.Normal(f"month_{start_date_str}",
                                                    mu=sum([eia_daily_observations[index] for index in indicies]),
                                                    sigma=sigma,
-                                                   observed=np.array([monthly_value]))
+                                                   observed=monthly_value)
 
             constraint_random_variables[start_date_str] = constraint_random_variable
     return constraint_random_variables
@@ -279,10 +293,16 @@ def fit_residential_model(start_training_time: str,
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
                                         state)
+
+    #TODO: This is a check.
+    calibrated_parameters["daily_consumption_error"] = 0.03
+
+
     data = dict()
     data["eia_monthly_values"] = eia_data
     data["consumption_factor_values"] = consumption_factor
     data["full_eia_data"] = eia_data
+    data["state"] = state
 
     params = dict()
     params["alpha_mu"] = 0.0
@@ -292,17 +312,16 @@ def fit_residential_model(start_training_time: str,
     params["minimum_consumption_sig"] = 0.0
     params["daily_consumption_error"] = 0.0
 
-    best_parameters, val = ResidentialModel(calibrated_parameters, params).run_inference_engine(start_training_time,
-                                                                                                end_training_time,
-                                                                                                eia_start_time,
-                                                                                                eia_end_time,
-                                                                                                params,
-                                                                                                data)
-
-    import pdb
-    pdb.set_trace()
+    best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(start_training_time,
+                                                                                                            end_training_time,
+                                                                                                            eia_start_time,
+                                                                                                            eia_end_time,
+                                                                                                            params,
+                                                                                                            data)
 
 
+    logging.info("Parameters are provided by {params} ".format(params=best_parameters))
+    logging.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
 
 
 

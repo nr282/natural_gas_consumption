@@ -32,11 +32,25 @@ def generate_grid(params_to_val: dict) -> List[dict]:
 
     def param_generator():
 
-        param_values = next(cartesian_product_iterator)
-        res = dict()
-        for index, val in enumerate(param_values):
-            param = param_names[index]
-            res[param] = val
-        yield res
+        while True:
+            try:
+                next(cartesian_product_iterator)
+            except StopIteration:
+                return
+            param_values = next(cartesian_product_iterator)
+            res = dict()
+            for index, val in enumerate(param_values):
+                param = param_names[index]
+                res[param] = val
+            yield res
 
-    return param_generator
+    return param_generator, cartesian_product_iterator
+
+
+if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    params_to_val = {"alpha": 0.1, "beta": 0.1}
+    grid, cartesian_product = generate_grid(params_to_val)
+    for elem in grid():
+        logging.info(elem)

@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Tuple
 from optimization import grid_search
+import numpy as np
+
 class Model(ABC):
     """
     States the parameters and the methods that will be housed in the model.
@@ -37,6 +39,18 @@ class Model(ABC):
     def get_params_for_model(self) -> dict:
         pass
 
+    def calculate_accuracy(self,
+                           estimated_monthly_data,
+                           data,
+                           state):
+
+        eia_data = data["full_eia_data"]
+        merged_df = eia_data.merge(estimated_monthly_data, on="Date")
+
+        merged_df["error"] = (merged_df[state].astype(np.float64) - merged_df["eia_observations"]).abs()
+        merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64)
+        return float(merged_df["relative_error_non_percent"].mean())
+
 
     def run_inference_engine(self,
                              start_datetime: str,
@@ -58,24 +72,32 @@ class Model(ABC):
             else:
                 param_to_value[param] = base_parameters.get(param)
 
-        parameter_grid = grid_search.generate_grid(param_to_value)
+        parameter_grid, _ = grid_search.generate_grid(param_to_value)
         optimal_param = None
         optimal_val = None
+        relative_error = None
         for param_to_value in parameter_grid():
-            params, val = self.inference(start_datetime,
-                                         end_datetime,
-                                         eia_start_time,
-                                         eia_end_time,
-                                         param_to_value,
-                                         data)
+            estimated_daily_data, estimated_monthly_data, params = self.inference(start_datetime,
+                                                                                 end_datetime,
+                                                                                 eia_start_time,
+                                                                                 eia_end_time,
+                                                                                 param_to_value,
+                                                                                 data)
+
+            relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
+
+            import logging
+            logging.info(f"The relative error is {relative_error} for params {params}")
+            logging.info(f"The estimated monthly data is: {estimated_monthly_data}")
+            logging.info(f"The actual data is: {data['full_eia_data']}")
 
             if optimal_param is None:
                 optimal_param = param_to_value
-                optimal_val = val
+                optimal_val = relative_error
             else:
-                if val < optimal_val:
+                if relative_error < optimal_val:
                     optimal_param = param_to_value
-                    optimal_val = val
+                    optimal_val = relative_error
 
-        return params, val
+        return optimal_param, relative_error
 

@@ -29,7 +29,11 @@ def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
     :return:
     """
 
-    return 0.1 * eia_data[state].astype(float).mean() / 30
+    return eia_data[state].astype(float).mean() / 30
+
+
+def fit_monthly_consumption_error(eia_data: pd.DataFrame, state: str):
+    return 0.1
 
 def calibration(consumption_factor,
                 eia_data: pd.DataFrame,
@@ -38,19 +42,21 @@ def calibration(consumption_factor,
     """
     Calibration of a variety of parameters using input data.
 
-
     """
 
     slope_parameter = fit_slope(eia_data, state)
     sensitivity_parameter = fit_sensitivity_parameter(consumption_factor, eia_data, state)
     minimum_consumption = fit_minimum_consumption(eia_data, state)
     daily_consumption_error = fit_daily_consumption_error(eia_data, state)
+    monthly_consumption_error = fit_monthly_consumption_error(eia_data, state)
 
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
             "alpha_sigma": 0.1 * sensitivity_parameter,
-            "minimum_consumption": minimum_consumption,
-            "daily_consumption_error": daily_consumption_error}
+            "minimum_consumption_mu": minimum_consumption,
+            "minimum_consumption_sig": minimum_consumption,
+            "daily_consumption_error": daily_consumption_error,
+            "monthly_consumption_error": monthly_consumption_error}
 
 
 
@@ -99,14 +105,6 @@ def fit_slope(eia_monthly_time_series, state: str):
 
     slope_average = sum(slope_values) / len(slope_values)
     return slope_average
-
-
-
-
-
-    import pdb
-    pdb.set_trace()
-
 
 def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
     """
