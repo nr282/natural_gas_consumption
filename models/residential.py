@@ -1,9 +1,9 @@
 """
 Provides residential model that can be fitted and inferred.
 
-TODO: It would be nice to grab the data only once.
-TODO: If we would like to grab the data only once, where should we look to do that.
-TODO:
+TODO: Added global optimization.
+TODO: Global optimization is critical.
+
 
 """
 
@@ -147,7 +147,7 @@ class ResidentialModel(Model):
                                                           eia_monthly_end_date=eia_end_datetime,
                                                           sigma=params.get("monthly_consumption_error"))
 
-            idata = pm.sample(draws=20, tune=20)
+            idata = pm.sample(draws=2000, tune=2000)
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
             return eia_estimated_daily_observations, estimated_estimated_monthly_data, params
 
@@ -267,7 +267,8 @@ def fit_residential_model(start_training_time: str,
                           end_training_time: str,
                           eia_start_time: str,
                           eia_end_time: str,
-                          state: str):
+                          state: str,
+                          method="GLOBAL"):
     """
     Fits the residential model.
 
@@ -312,12 +313,19 @@ def fit_residential_model(start_training_time: str,
     params["minimum_consumption_sig"] = 0.0
     params["daily_consumption_error"] = 0.0
 
-    best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(start_training_time,
-                                                                                                            end_training_time,
-                                                                                                            eia_start_time,
-                                                                                                            eia_end_time,
-                                                                                                            params,
-                                                                                                            data)
+    if method != "GLOBAL":
+        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(start_training_time,
+                                                                                                                end_training_time,
+                                                                                                                eia_start_time,
+                                                                                                                eia_end_time,
+                                                                                                                params,
+                                                                                                                data)
+    else:
+        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine_with_global_optimization(start_training_time,
+                                                                                                                                            end_training_time,
+                                                                                                                                            eia_start_time,
+                                                                                                                                            eia_end_time,
+                                                                                                                                            data)
 
 
     logging.info("Parameters are provided by {params} ".format(params=best_parameters))
@@ -329,9 +337,10 @@ def fit_residential_model(start_training_time: str,
 if __name__ == '__main__':
 
     #Run the fitting of the residential model for Virginia.
+    #TODO: Currently running with the global optimization.
 
     start_training_time = "2022-01-01"
-    end_training_time = "2024-01-01"
+    end_training_time = "2023-12-31"
     start_test_time = "2022-01-01"
     end_test_time = "2023-01-01"
     state = "Virginia"

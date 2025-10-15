@@ -11,6 +11,9 @@ from datetime import datetime
 from typing import Tuple
 from optimization import grid_search
 import numpy as np
+from scipy.optimize import dual_annealing
+
+UPPER_MULTIPLICATIVE_BOUND = 5
 
 class Model(ABC):
     """
@@ -52,6 +55,109 @@ class Model(ABC):
         return float(merged_df["relative_error_non_percent"].mean())
 
 
+    @abstractmethod
+    def inference(self,
+                start_datetime: str,
+                end_datetime: str,
+                eia_start_time: str,
+                eia_end_time: str,
+                params: dict,
+                data: dict) -> Tuple[dict, float]:
+        """
+        Abstracts the inference model.
+
+        This is the core function that looks to infer the relevant parameters.
+        """
+        pass
+
+    def override_parameters(self):
+
+        base_parameters = self.get_params_for_model()
+        param_to_value = dict()
+        for param in base_parameters:
+            if param in self.calibrated_parameters:
+                param_to_value[param] = self.calibrated_parameters[param]
+            else:
+                param_to_value[param] = base_parameters.get(param)
+        return param_to_value
+
+
+    def convert_x_to_params(self, x):
+        params = dict()
+        param_names = self.get_params_for_model().keys()
+        for i, param_name in enumerate(param_names):
+            params[param_name] = x[i]
+        return params
+
+    def convert_params_to_x(self, params):
+
+        n = len(params)
+        x = np.zeros(n)
+        for i, param in enumerate(params):
+            x[i] = params[param]
+        return x
+
+    def calculate_bounds(self):
+        param_names = self.get_params_for_model().keys()
+        n = len(param_names)
+        bounds = []
+        param_to_value = self.override_parameters()
+        for param_name in param_names:
+
+            upper_bound = UPPER_MULTIPLICATIVE_BOUND * param_to_value.get(param_name)
+            if upper_bound <= 0:
+                raise ValueError(f"Upper bound cannot be less than 0. The offending parameter name is: {param_name} and the value is: {upper_bound}")
+
+            bounds.append((0, upper_bound))
+        return bounds
+
+    def global_optimize(self,
+                        start_datetime: str,
+                        end_datetime: str,
+                        eia_start_time: str,
+                        eia_end_time: str,
+                        data: dict):
+        """
+        Globally optimizes the model parameters.
+        """
+
+        def func(x):
+            params = self.convert_x_to_params(x)
+            estimated_daily_data, estimated_monthly_data, params = self.inference(start_datetime,
+                                                                                   end_datetime,
+                                                                                   eia_start_time,
+                                                                                   eia_end_time,
+                                                                                   params,
+                                                                                   data)
+
+            relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
+            return relative_error
+
+        bounds = self.calculate_bounds()
+        ret = dual_annealing(func, bounds=bounds)
+        return self.convert_x_to_params(ret.x), ret.fun
+
+
+    def run_inference_engine_with_global_optimization(self,
+                                                     start_datetime: str,
+                                                     end_datetime: str,
+                                                     eia_start_time: str,
+                                                     eia_end_time: str,
+                                                     data: dict) -> Tuple[dict, float]:
+        """
+        The goal of the run inference engine with global optimization is to find the optimal
+        parameters for the function associated with self.inference_model which is an abstract
+        function provided above.
+
+        """
+
+        params, opt_relative_error = self.global_optimize(start_datetime,
+                                                         end_datetime,
+                                                         eia_start_time,
+                                                         eia_end_time,
+                                                         data)
+        return params, opt_relative_error
+
     def run_inference_engine(self,
                              start_datetime: str,
                              end_datetime: str,
@@ -62,15 +168,7 @@ class Model(ABC):
 
         #Gather Base Parameters
         base_parameters = self.get_params_for_model()
-
-        #Creates grid from the base parameters
-        #Use calibrated parameters where they exist.
-        param_to_value = dict()
-        for param in base_parameters:
-            if param in self.calibrated_parameters:
-                param_to_value[param] = self.calibrated_parameters[param]
-            else:
-                param_to_value[param] = base_parameters.get(param)
+        param_to_value = self.override_parameters()
 
         parameter_grid, _ = grid_search.generate_grid(param_to_value)
         optimal_param = None

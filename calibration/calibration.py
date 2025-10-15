@@ -20,7 +20,7 @@ def fit_minimum_consumption(eia_data: pd.DataFrame, state: str):
     :return:
     """
 
-    return eia_data[state].astype(float).min() / 30
+    return 1.5 * eia_data[state].astype(float).min() / 30
 
 def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
     """
@@ -52,7 +52,8 @@ def calibration(consumption_factor,
 
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
-            "alpha_sigma": 0.1 * sensitivity_parameter,
+            "alpha_2_mu": 0.1 * sensitivity_parameter,
+            "alpha_sigma": 0.01 * sensitivity_parameter,
             "minimum_consumption_mu": minimum_consumption,
             "minimum_consumption_sig": 0.5 * minimum_consumption,
             "daily_consumption_error": daily_consumption_error,
