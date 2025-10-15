@@ -130,6 +130,9 @@ class Model(ABC):
                                                                                    params,
                                                                                    data)
 
+            if estimated_daily_data is None or estimated_monthly_data is None or params is None:
+                return float('inf')
+
             relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
             return relative_error
 

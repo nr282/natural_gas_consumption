@@ -146,8 +146,10 @@ class ResidentialModel(Model):
                                                           eia_monthly_start_date=eia_start_datetime,
                                                           eia_monthly_end_date=eia_end_datetime,
                                                           sigma=params.get("monthly_consumption_error"))
-
-            idata = pm.sample(draws=2000, tune=2000)
+            try:
+                idata = pm.sample(draws=2000, tune=2000)
+            except:
+                return None, None, None
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
             return eia_estimated_daily_observations, estimated_estimated_monthly_data, params
 
