@@ -142,7 +142,7 @@ class ResidentialModel(Model):
                                                           eia_daily_observations,
                                                           full_eia_data,
                                                           consumption_factor_to_index,
-                                                          state,
+                                                          data["state"],
                                                           eia_monthly_start_date=eia_start_datetime,
                                                           eia_monthly_end_date=eia_end_datetime,
                                                           sigma=params.get("monthly_consumption_error"))
