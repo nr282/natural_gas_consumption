@@ -70,8 +70,7 @@ class VirginiaPopulationData(population.PopulationData):
 
     def acquire_population_data(self):
         replacement_column_name = "County/State"
-        #C:\Users\nr282\PycharmProjects\PythonProject4\data\population\virginia_population.csv
-        population_data = pd.read_csv("C:\\Users\\nr282\\PycharmProjects\\PythonProject4\\data\\population\\virginia_population.csv")
+        population_data = pd.read_csv(os.path.join(os.getcwd(), "data", "population", "virginia_population.csv"))
         population_data.rename(columns={"Unnamed: 0": replacement_column_name}, inplace=True)
         population_data[replacement_column_name] = population_data[replacement_column_name].apply(
             lambda x: x[1:] if x[0] == "." else x)
