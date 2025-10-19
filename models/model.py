@@ -12,8 +12,9 @@ from typing import Tuple
 from optimization import grid_search
 import numpy as np
 from scipy.optimize import dual_annealing
+import logging
 
-UPPER_MULTIPLICATIVE_BOUND = 5
+UPPER_MULTIPLICATIVE_BOUND = 2
 
 class Model(ABC):
     """
@@ -134,6 +135,7 @@ class Model(ABC):
                 return float('inf')
 
             relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
+            logging.info(f"The relative error is {relative_error} for params {params}")
             return relative_error
 
         bounds = self.calculate_bounds()
