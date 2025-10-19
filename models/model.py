@@ -16,6 +16,10 @@ import logging
 
 UPPER_MULTIPLICATIVE_BOUND = 2
 
+logging.basicConfig(
+    level=logging.DEBUG
+)
+
 class Model(ABC):
     """
     States the parameters and the methods that will be housed in the model.
