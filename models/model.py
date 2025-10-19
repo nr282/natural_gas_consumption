@@ -57,6 +57,7 @@ class Model(ABC):
 
         merged_df["error"] = (merged_df[state].astype(np.float64) - merged_df["eia_observations"]).abs()
         merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64)
+        logging.info(f"Monthly Estimate Comparison {merged_df}")
         return float(merged_df["relative_error_non_percent"].mean())
 
 

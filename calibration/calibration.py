@@ -68,9 +68,9 @@ def fit_slope(eia_monthly_time_series, state: str):
     As an example of the information that was found in eia_monthly_time_series.
     The relevant calculations can be made from below.
 
-    '01': [19365, 13158], = -6000
-    '02': [13591, 10478], = -3000
-    '03': [8991, 9964],   = 1000
+    '01': [19365, 13158], = -6000 = -6000 / 13000 = 30 percent
+    '02': [13591, 10478], = -3000 = 30 %
+    '03': [8991, 9964],   = 1000 =
     '04': [4455, 4160],   = -300
     '05': [2909, 2774],   = -200
     '06': [1815, 2103],   = +200
