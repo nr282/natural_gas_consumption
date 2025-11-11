@@ -54,7 +54,6 @@ class Model(ABC):
 
         eia_data = data["full_eia_data"]
         merged_df = eia_data.merge(estimated_monthly_data, on="Date")
-
         merged_df["error"] = (merged_df[state].astype(np.float64) - merged_df["eia_observations"]).abs()
         merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64)
         logging.info(f"Monthly Estimate Comparison {merged_df}")
@@ -179,6 +178,7 @@ class Model(ABC):
         #Gather Base Parameters
         base_parameters = self.get_params_for_model()
         param_to_value = self.override_parameters()
+
 
         parameter_grid, _ = grid_search.generate_grid(param_to_value)
         optimal_param = None

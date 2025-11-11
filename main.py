@@ -40,12 +40,14 @@ def main():
     start_test_time = "2022-01-01"
     end_test_time = "2023-01-01"
     state = "Virginia"
+    method = "LINEAR"
 
     fit_residential_model(start_training_time,
                           end_training_time,
                           start_test_time,
                           end_test_time,
-                          state)
+                          state,
+                          method=method)
 
 
 if __name__ == "__main__":

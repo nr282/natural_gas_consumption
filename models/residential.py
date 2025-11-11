@@ -178,6 +178,113 @@ class ResidentialModel(Model):
                 "monthly_consumption_error": 0.0}
 
 
+#Very similar to how we specified the Residential Model below,
+#we need to specify a Residential Model that uses the linear regression.
+class ResidentialModelLinearRegression(Model):
+    """
+    States the linear regression-based Residential Model.
+
+    The linear regression-based model aims to create daily values
+    via the data that is provided.
+
+    The goal is to compare the accuracy of these data values versus the
+    values that were provided above.
+    """
+
+    def __init__(self,
+                 calibrated_parameters=None,
+                 parameter_list=None,
+                 ):
+
+        super().__init__(calibrated_parameters, parameter_list)
+
+
+    def inference(self,
+                  start_datetime: str,
+                  end_datetime: str,
+                  eia_start_datetime: str,
+                  eia_end_datetime: str,
+                  params: dict,
+                  data: dict):
+        """
+        Inference in the residential model.
+
+        Returns (1) params, (2) eia_estimated_daily_observations, (3) estimated_monthly_data.
+
+        """
+
+        dates = pd.date_range(start_datetime, end_datetime)
+        consumption_factor_values = data["consumption_factor_values"]["Consumption_Factor_Normalizied"].values
+
+        df = pd.DataFrame(data={"Date": dates,
+                                "Consumption_Factor_Values": consumption_factor_values})
+
+
+        df["Month"] = df["Date"].dt.month
+        df["Year"] = df["Date"].dt.year
+
+        df_by_month = df.groupby(["Month", "Year"]).mean().reset_index()
+
+        full_eia_data = data["full_eia_data"]
+        full_eia_data = full_eia_data.reset_index()
+        full_eia_data["Date"] = full_eia_data["period"].apply(lambda x: x + "-01")
+        full_eia_data["Date"] = full_eia_data["Date"].apply(lambda x: datetime.datetime.strptime(x, "%Y-%m-%d"))
+
+        full_eia_data["Day"] = full_eia_data["Date"].apply(lambda x: x.day)
+        full_eia_data["Month"] = full_eia_data["Date"].apply(lambda x: x.month)
+        full_eia_data["Year"] = full_eia_data["Date"].apply(lambda x: x.year)
+
+        merged_df = df_by_month.merge(full_eia_data, how="left", on=["Month", "Year"]).dropna()
+        merged_df["Virginia"] = merged_df["Virginia"].astype(float)
+        merged_df_fit = merged_df[merged_df["Date_y"] <= eia_end_datetime][["Consumption_Factor_Values", "Virginia", "Month", "Year"]]
+
+        from sklearn.linear_model import LinearRegression
+        reg = LinearRegression().fit(merged_df_fit["Consumption_Factor_Values"].values[..., np.newaxis], merged_df_fit["Virginia"].values[..., np.newaxis])
+        alpha = reg.coef_[0][0]
+        beta = reg.intercept_[0]
+        merged_df["alpha"] = alpha
+        merged_df["beta"] = beta
+        merged_df["Monthly_Predicted"] = merged_df.apply(lambda row: row["alpha"] * row["Consumption_Factor_Values"] + row["beta"], axis=1)
+        merged_df["error"] = (merged_df["Monthly_Predicted"] - merged_df["Virginia"]).abs() / merged_df["Virginia"]
+        relative_error = merged_df["error"].mean()
+        percent_error = relative_error * 100
+
+        logging.info("Percent Error of Linear Regression Model is {}".format(percent_error))
+        #INFO:root:Percent Error of Linear Regression Model is 22.3%
+
+        eia_estimated_daily_observations = None
+        estimated_monthly_data = None
+        params = None
+
+        return eia_estimated_daily_observations, estimated_monthly_data, params
+
+    def get_params_for_model(self) -> dict:
+        """
+        Calculates parameters for the model.
+
+        The parameters that will be used in the model are:
+            1. alpha_mu
+            2. alpha_sigma
+            3. alpha_2_mu
+            4. alpha_2_sigma
+            5. minimum_consumption_mu
+            6. minimum_consumption_sig
+            7. daily_consumption_error
+
+        """
+
+        return {"alpha_mu": 0,
+                "alpha_sigma": 10,
+                "alpha_2_mu": 0,
+                "alpha_2_sigma": 1,
+                "minimum_consumption_mu": 0,
+                "minimum_consumption_sig": 0.1,
+                "daily_consumption_error": 0,
+                "monthly_consumption_error": 0.0}
+
+
+
+
 
 def calculate_consumption_lagged(consumption_factor_values):
     """
@@ -297,7 +404,6 @@ def fit_residential_model(start_training_time: str,
                                         eia_data,
                                         state)
 
-    #TODO: This is a check.
     calibrated_parameters["daily_consumption_error"] = 0.03
 
 
@@ -315,43 +421,40 @@ def fit_residential_model(start_training_time: str,
     params["minimum_consumption_sig"] = 0.0
     params["daily_consumption_error"] = 0.0
 
-    if method != "GLOBAL":
-        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(start_training_time,
+    if method == "GLOBAL":
+        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters,
+                                                              params).run_inference_engine_with_global_optimization(
+                                                                                                                    start_training_time,
+                                                                                                                    end_training_time,
+                                                                                                                    eia_start_time,
+                                                                                                                    eia_end_time,
+                                                                                                                    data)
+
+    elif method == "LINEAR":
+
+        best_parameters, optimal_rel_error = ResidentialModelLinearRegression(calibrated_parameters, params).run_inference_engine(start_training_time,
+                                                                                                                                end_training_time,
+                                                                                                                                eia_start_time,
+                                                                                                                                eia_end_time,
+                                                                                                                                params,
+                                                                                                                                data)
+
+    else:
+        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(
+                                                                                                                start_training_time,
                                                                                                                 end_training_time,
                                                                                                                 eia_start_time,
                                                                                                                 eia_end_time,
                                                                                                                 params,
                                                                                                                 data)
-    else:
-        best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine_with_global_optimization(start_training_time,
-                                                                                                                                            end_training_time,
-                                                                                                                                            eia_start_time,
-                                                                                                                                            eia_end_time,
-                                                                                                                                            data)
 
 
     logging.info("Parameters are provided by {params} ".format(params=best_parameters))
     logging.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
 
 
-
-
 if __name__ == '__main__':
-
-    #Run the fitting of the residential model for Virginia.
-    #TODO: Currently running with the global optimization.
-
-    start_training_time = "2022-01-01"
-    end_training_time = "2023-12-31"
-    start_test_time = "2022-01-01"
-    end_test_time = "2023-01-01"
-    state = "Virginia"
-
-    fit_residential_model(start_training_time,
-                          end_training_time,
-                          start_test_time,
-                          end_test_time,
-                          state)
+    pass
 
 
 
