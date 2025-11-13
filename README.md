@@ -39,6 +39,12 @@ Discussion:
 
 Training the models can take up to a month. This was a key feature, not drawback of the techniques and methods we aimed to employ here. The increased training time allows us to develop a more sophisticated statistical model with unknown hyperparameters and then find the hyperparameters with a global optimization technique. The increased model complexity and appropiate model of the data has the ability to create better predictions than the linear regression techniques employed at Millenium, Brevan Howard, Tudor Investment Corporation etc. Furthermore, the business strategy of using the available training time to compute more sophisticated statistical models than what the current hedge funds currently have is a step in the direction of the future. The improved results found in Natural Gas Trading can be used as an example to investors and other technology companies that Spectral Technologies capabilities are unparalled. 
 
+Task List:
+  1. Validate Virginia Residential Consumption
+  2. Look to verify against out-of-sample-2024 numbers with parameters trained in the log.
+  3. Look to extend the methodology to additional states. 
+
+
 
 
 
