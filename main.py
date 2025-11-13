@@ -64,8 +64,8 @@ def run_inference():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Parses arguments")
-    parser.add_argument("--training", type=bool, default=False, help="States if we want to run training")
-    parser.add_argument("--inference", type=bool, default=False, help="States if we want to run inference")
+    parser.add_argument("--training", action='store_true', help="States if we want to run training")
+    parser.add_argument("--inference", action='store_true', help="States if we want to run inference")
 
     args = parser.parse_args()
 
