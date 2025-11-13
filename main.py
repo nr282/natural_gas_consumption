@@ -17,6 +17,8 @@ import pandas as pd
 from config import config
 from data import data_preparation
 from models.residential import fit_residential_model
+import argparse
+from inference.inference import inference_engine
 
 def read_configuration():
     """
@@ -49,6 +51,32 @@ def main():
                           state,
                           method=method)
 
+def run_inference():
+    """
+    Run Inference.
+
+    :return:
+    """
+
+    inference_engine()
+
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser(description="Parses arguments")
+    parser.add_argument("--training", type=bool, default=False, help="States if we want to run training")
+    parser.add_argument("--inference", type=bool, default=False, help="States if we want to run inference")
+
+    args = parser.parse_args()
+
+    if args.training and args.inference:
+        raise ValueError("Cannot both run training and inference at the same time")
+
+
+    if args.training:
+        main()
+    elif args.inference:
+        run_inference()
+
+
+

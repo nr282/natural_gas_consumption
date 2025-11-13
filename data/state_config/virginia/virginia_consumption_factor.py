@@ -14,6 +14,7 @@ from location import location
 from typing import List
 import numpy as np
 from scipy.interpolate import interp1d
+from utils import *
 
 class VirginiaConsumptionFactorCalculation(state_config.ConsumptionConfiguration):
     """
@@ -70,7 +71,7 @@ class VirginiaPopulationData(population.PopulationData):
 
     def acquire_population_data(self):
         replacement_column_name = "County/State"
-        population_data = pd.read_csv(os.path.join(os.getcwd(), "data", "population", "virginia_population.csv"))
+        population_data = pd.read_csv(os.path.join(get_base_path(), "data", "population", "virginia_population.csv"))
         population_data.rename(columns={"Unnamed: 0": replacement_column_name}, inplace=True)
         population_data[replacement_column_name] = population_data[replacement_column_name].apply(
             lambda x: x[1:] if x[0] == "." else x)
@@ -140,12 +141,7 @@ class VirginiaPopulationData(population.PopulationData):
                 df.index.name = "Date"
                 df.reset_index(inplace=True)
                 return df
-
         else:
-
-            import pdb
-            pdb.set_trace()
-
             raise ValueError("Multiple locations found.")
 
 if __name__ == "__main__":
