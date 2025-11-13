@@ -1,0 +1,15 @@
+{
+"parameters":
+      {"alpha_mu": "29.18",
+        "alpha_sigma": "11.61",
+        "alpha_2_mu": "42.66",
+        "alpha_2_sigma": "0.84",
+        "minimum_consumption_mu": "37.88",
+        "minimum_consumption_sig": "52.23",
+        "daily_consumption_error": "0.050",
+        "monthly_consumption_error": "0.0048"
+      },
+  "model": "v1",
+  "eia_timeframe": "2022",
+  "calibration_timeframe": "2023"
+}

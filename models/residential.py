@@ -372,6 +372,38 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
     return residential_df
 
 
+def load_residential_data(state,
+                          start_training_time,
+                          end_training_time):
+    """
+    Loads residential related data primarily from EIA into a dictionary.
+
+
+    :return:
+    """
+
+    logging.info("Acquiring EIA Residential Data")
+    eia_data = get_eia_residential_data(start_training_time, end_training_time)
+    eia_data = eia_data[[state]]
+    logging.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
+
+    population = get_population(state)
+    weather_service = PyWeatherData(population)
+    consumption_factor = calculate_consumption_factor(population,
+                                                      weather_service,
+                                                      start_training_time,
+                                                      end_training_time)
+
+    data = dict()
+    data["eia_monthly_values"] = eia_data
+    data["consumption_factor_values"] = consumption_factor
+    data["full_eia_data"] = eia_data
+    data["state"] = state
+
+
+    return data, consumption_factor, eia_data
+
+
 def fit_residential_model(start_training_time: str,
                           end_training_time: str,
                           eia_start_time: str,
@@ -386,32 +418,15 @@ def fit_residential_model(start_training_time: str,
     :return:
     """
 
-    #How can we look at correctly formatting the code.
-
-    logging.info("Acquiring EIA Residential Data")
-    eia_data = get_eia_residential_data(start_training_time, end_training_time)
-    eia_data = eia_data[[state]]
-    logging.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
-
-    population = get_population(state)
-    weather_service = PyWeatherData(population)
-    consumption_factor = calculate_consumption_factor(population,
-                                                     weather_service,
-                                                     start_training_time,
-                                                     end_training_time)
+    data, consumption_factor, eia_data = load_residential_data(state,
+                                                               start_training_time,
+                                                               end_training_time)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
                                         state)
 
     calibrated_parameters["daily_consumption_error"] = 0.03
-
-
-    data = dict()
-    data["eia_monthly_values"] = eia_data
-    data["consumption_factor_values"] = consumption_factor
-    data["full_eia_data"] = eia_data
-    data["state"] = state
 
     params = dict()
     params["alpha_mu"] = 0.0
