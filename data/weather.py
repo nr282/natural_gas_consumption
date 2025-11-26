@@ -28,6 +28,7 @@ from collections import namedtuple
 from location import raw_name_to_standard_name, get_list_of_standardizied_name
 import logging
 from .mathematical_models_natural_gas import calculate_hdd, calculate_cdd, TemperatureType
+from utils import *
 
 
 logging.basicConfig(level=logging.INFO)
@@ -86,9 +87,37 @@ def get_weather_data(start: datetime,
     pivot_complete_data["Day"] = pivot_complete_data["Datetime"].dt.day
 
     pivot_complete_data.columns = pivot_complete_data.columns.map(''.join)
-
-
     return pivot_complete_data
+
+
+def get_prescient_weather_data_via_api():
+    raise NotImplementedError("Currently the Prescient API is not implemented.")
+
+def get_prescient_weather_data_via_csv(state):
+
+    path = os.path.join(get_base_path(), "data", "weather", state, f"{state.lower()}_hdd_cdd_obs.csv")
+    df = pd.read_csv(path)
+    return df
+
+def get_prescient_weather_data(state):
+    """
+    Gets the prescient weather data. Prescient Weather Data is a particular weather
+    vendor who has provided us with both csv and api access.
+
+    :return:
+    """
+
+    try:
+        df = get_prescient_weather_data_via_api()
+    except NotImplementedError:
+        df = get_prescient_weather_data_via_csv(state)
+    except Exception as e:
+        logging.error(f"Could not get prescient weather data via api or csv. Error: {e}")
+        raise e
+
+    return df
+
+
 
 class Weather(ABC):
     """
@@ -110,10 +139,12 @@ class Weather(ABC):
 
     def __init__(self, locations):
         self.native_name = None
+        self.locations = locations
         self.raw_df = self.acquire_native_data()
         self.refactor_date()
         self.refactor_locations()
         self.calculate_hdd_and_cdd()
+
 
     @abstractmethod
     def get_locations(self) -> List[location]:
@@ -186,10 +217,14 @@ class Weather(ABC):
     def get_standardizied_name(self):
         return "Date"
 
+    def _convert_to_datetime(self, date_ser: pd.Series) -> pd.Series:
+        return pd.to_datetime(date_ser, format="%Y-%m-%d")
+
     def refactor_date(self):
         self.raw_df[self.get_standardizied_name()] = self.raw_df[self.get_native_date_name()]
         date_ser = self.raw_df[self.get_standardizied_name()]
-        assert(date_ser.dtype == "datetime64[ns]")
+        self.raw_df[self.get_standardizied_name()] = self._convert_to_datetime(date_ser)
+        assert(self.raw_df[self.get_standardizied_name()].dtype == "datetime64[ns]")
         self.df = self.raw_df.copy()
 
     def refactor_locations(self):
@@ -224,7 +259,7 @@ class PyWeatherData(Weather):
         pass
 
     def get_locations(self) -> List[location]:
-        pass
+        return self.locations
 
     def get_complete_time_span(self) -> (datetime, datetime):
         pass
@@ -267,6 +302,65 @@ class PyWeatherData(Weather):
 
     def get_native_date_name(self) -> str:
         return "Datetime"
+
+
+class PrescientWeather(Weather):
+    """
+    Implements Prescient Weather data service either from the API or the data
+    that was sent over for Virginia.
+
+    The data comes in HDD format for the entire state and is already properly population
+    weighted.
+    """
+
+    def __init__(self, locations):
+        super().__init__(locations)
+
+    def get_standardizied_data(self):
+        raise NotImplemented()
+
+    def get_temperature(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+        raise NotImplemented()
+
+    def get_locations(self) -> List[location]:
+        raise NotImplemented()
+
+    def get_complete_time_span(self) -> (datetime, datetime):
+        raise NotImplemented()
+
+    def get_min_and_max_time_span(self) -> (datetime, datetime):
+        raise NotImplemented()
+
+    def get_cdd(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+        raise NotImplemented()
+
+    def get_hdd(self, locations: List[location], start: datetime, end: datetime) -> dict:
+
+        date_range = pd.date_range(start=start, end=end, freq="D")
+        df = pd.DataFrame(date_range, columns=["Date"])
+        res = df.merge(self.raw_df, on="Date", how="left")
+        res = res[["Date", "hdd"]]
+        res = res.rename(columns={"hdd": "HDD"})
+        return res
+
+    def get_type_of_temperature(self) -> TemperatureType:
+        return TemperatureType.CELCIUS
+
+    def set_native_date_name(self, native_name: str):
+        raise NotImplemented()
+
+    def acquire_native_data(self, locations=None) -> pd.DataFrame:
+
+        if locations is None:
+            df = get_prescient_weather_data(self.locations[0])
+        else:
+            raise NotImplemented(f"Locations passed to the function acquire native {locations}")
+        return df
+
+    def get_native_date_name(self) -> str:
+
+        return "date"
+        #self.raw_df.date
 
 
 def test_get_weather():

@@ -1,0 +1,28 @@
+The feature list is provided below:
+
+    1. Add API integration with Prescient Weather
+        - I believe that this can be added directly with the s2 integration provided
+        - We should be able to get all new states added very easily.
+        - This should take maybe two to three hours.
+        - We need to get the multiprocessing working for all of the relevant states.
+    2. I think we should start making predictions as soon as January 1st.
+        - There will need to be a month of training or so for each state.
+        - We need to add (1) time series adjustments, which will include seasonality, ARMIA, monthly adjustment
+        on top of our monthly fits, (2) we should also look to fit slope, seasonality, monthly adjustment, to
+        the product.
+        - We need to configure AWS to handle multi-core, multi-processor calculation of the residential and commercial
+        models using only 1 AWS EC2 computing cluster.
+            - This can make this a wrapper around the Residential/Commercial element.
+        - We should likely get all of this code ready.
+        - We should also add the day of the week.
+        - We should also add potential auto regression.
+        - We should also look to optimize the natural gas prediction structure.
+    3. Clearly, the material built is better than the standard linear regression model, all things being equal.
+        - Namely, all of the data is the same in both prediction engines.
+        - The difference
+    4. We also need the forecast data.
+    5. We should look out scoping an integrated balance statistical model.
+        - We should make estimates and/or build a quick analysis
+    6. We should look to add pipeline data and pipeline framework into the calculations.
+    7. We may also want to start looking at the Baker Huges aspect in terms of the production level.
+    8.

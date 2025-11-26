@@ -33,23 +33,28 @@ def read_configuration():
 
 def main():
 
+    #TODO: Need to calculate the correct values below.
 
-    # Run the fitting of the residential model for Virginia.
-    # TODO: Currently running with the global optimization.
 
-    start_training_time = "2022-01-01"
+    start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
-    start_test_time = "2022-01-01"
-    end_test_time = "2023-01-01"
+    start_test_time = "2024-01-01"
+    end_test_time = "2024-12-31"
     state = "Virginia"
     method = "LINEAR"
+    consumption_factor_method = "CUSTOM_WITH_PYWEATHER"
+
+    #TODO: CUSTOM_WITH_PYWEATHER
+    #TODO: It may be a consideration to refactor to consume
+    #TODO: this information as a set of kwargs.
 
     fit_residential_model(start_training_time,
                           end_training_time,
                           start_test_time,
                           end_test_time,
                           state,
-                          method=method)
+                          method=method,
+                          consumption_factor_method=consumption_factor_method)
 
 def run_inference():
     """
@@ -62,6 +67,12 @@ def run_inference():
 
 
 if __name__ == "__main__":
+
+
+    #TODO: 14.07% with Prescient
+    #TODO: 15.14 with Pyweather
+
+    main()
 
     parser = argparse.ArgumentParser(description="Parses arguments")
     parser.add_argument("--training", action='store_true', help="States if we want to run training")

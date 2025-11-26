@@ -13,12 +13,13 @@ from abc import ABC
 import pandas as pd
 import numpy as np
 from calibration.calibration import calibration
-from data.consumption_factor.consumption_factor_calculation import calculate_consumption_factor
+from data.consumption_factor.consumption_factor_calculation import (calculate_consumption_factor,
+                                                                    calculate_consumption_factor_via_pop_weighted_weather)
 from optimization import grid_search
 import pickle
 from data.consumption_factor import consumption_factor_calculation
 from data.state_config.virginia.virginia_consumption_factor import VirginiaPopulationData
-from data.weather import PyWeatherData
+from data.weather import PyWeatherData, PrescientWeather
 from data.eia_consumption.eia_consumption import get_eia_consumption_data_in_pivot_format
 import logging
 import pymc as pm
@@ -226,6 +227,7 @@ class ResidentialModelLinearRegression(Model):
         df_by_month = df.groupby(["Month", "Year"]).mean().reset_index()
 
         full_eia_data = data["full_eia_data"]
+
         full_eia_data = full_eia_data.reset_index()
         full_eia_data["Date"] = full_eia_data["period"].apply(lambda x: x + "-01")
         full_eia_data["Date"] = full_eia_data["Date"].apply(lambda x: datetime.datetime.strptime(x, "%Y-%m-%d"))
@@ -374,7 +376,8 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
 
 def load_residential_data(state,
                           start_training_time,
-                          end_training_time):
+                          end_training_time,
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
     """
     Loads residential related data primarily from EIA into a dictionary.
 
@@ -387,12 +390,22 @@ def load_residential_data(state,
     eia_data = eia_data[[state]]
     logging.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
 
-    population = get_population(state)
-    weather_service = PyWeatherData(population)
-    consumption_factor = calculate_consumption_factor(population,
-                                                      weather_service,
-                                                      start_training_time,
-                                                      end_training_time)
+    if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
+
+        population_weighted_weather = PrescientWeather([state])
+        consumption_factor = calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather,
+                                                                                  start_training_time,
+                                                                                  end_training_time,
+                                                                                   state)
+
+    elif consumption_factor_method == "CUSTOM_WITH_PYWEATHER":
+
+        population = get_population(state)
+        weather_service = PyWeatherData(population)
+        consumption_factor = calculate_consumption_factor(population,
+                                                          weather_service,
+                                                          start_training_time,
+                                                          end_training_time)
 
     data = dict()
     data["eia_monthly_values"] = eia_data
@@ -409,7 +422,8 @@ def fit_residential_model(start_training_time: str,
                           eia_start_time: str,
                           eia_end_time: str,
                           state: str,
-                          method="GLOBAL"):
+                          method="GLOBAL",
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
     """
     Fits the residential model.
 
@@ -420,7 +434,8 @@ def fit_residential_model(start_training_time: str,
 
     data, consumption_factor, eia_data = load_residential_data(state,
                                                                start_training_time,
-                                                               end_training_time)
+                                                               end_training_time,
+                                                               consumption_factor_method=consumption_factor_method)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
