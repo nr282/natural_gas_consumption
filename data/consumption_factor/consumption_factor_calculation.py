@@ -60,6 +60,30 @@ from data.weather import PyWeatherData, Weather
 import datetime
 import pandas as pd
 
+
+def calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather: Weather,
+                                                         start_datetime: datetime.datetime,
+                                                         end_datetime: datetime.datetime,
+                                                         location: str,
+                                                         degree_day_type: str = "HDD") -> pd.Series:
+    """
+    Calculates the consumption factor for Prescient Weather.
+    """
+
+
+    df = population_weighted_weather.get_cdd(location,
+                                             start_datetime,
+                                             end_datetime)
+
+    min_value = df[degree_day_type].min()
+    max_value = df[degree_day_type].max()
+    df["Consumption_Factor_Normalizied"] = df[degree_day_type].apply(lambda x: (x - min_value) / (max_value - min_value))
+    date_range = pd.date_range(start=start_datetime, end=end_datetime, freq="D")
+    result = pd.DataFrame(date_range, columns=["Date"])
+    result["Consumption_Factor_Normalizied"] = df["Consumption_Factor_Normalizied"]
+    return result
+
+
 def calculate_consumption_factor(population: PopulationData,
                                  weather_service: Weather,
                                  start_datetime: datetime.datetime,

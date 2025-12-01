@@ -12,6 +12,10 @@ Weather Dataset 1 ------------->
 Weather Dataset 2 ------------->   Weather Interface -------> Client Code uses Weather Interface.
 Weather Dataset 3 ------------->
 
+
+TODO: Need to get New York setup.
+TODO: After getting New York setup, we can move on to other states.
+
 """
 
 from datetime import datetime
@@ -25,6 +29,8 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 from typing import List, Union, Optional
 from collections import namedtuple
+
+from data.eia_consumption.eia_geography_mappings import abbrev_to_us_state
 from location import raw_name_to_standard_name, get_list_of_standardizied_name
 import logging
 from .mathematical_models_natural_gas import calculate_hdd, calculate_cdd, TemperatureType
@@ -93,11 +99,47 @@ def get_weather_data(start: datetime,
 def get_prescient_weather_data_via_api():
     raise NotImplementedError("Currently the Prescient API is not implemented.")
 
+
+def prescient_weather_data_via_csv_handler(state):
+    """
+    A major goal of this function is to find a correct csv path to get data.
+
+
+
+    """
+
+    p_0 = os.path.join(get_base_path(), "data", "weather", state, f"{state.lower()}_hdd_cdd_obs.csv")
+    p_1 = os.path.join(get_base_path(), "data", "weather", "State", f"regional_degree_day_history_daily_v2025.csv")
+
+    paths_for_prescient_weather_data = [p_0, p_1]
+    for path in paths_for_prescient_weather_data:
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            return df
+        else:
+            logging.warning(f"Could not find path {path}")
+    raise Exception("Could not find path for prescient weather data.")
+
+
+def standardize_df(df):
+
+    if "Region Type" in df and "Gas HDD" in df and "Region" in df:
+        df = df[df["Region Type"] == 'STATE']
+        df["Region"] = df["Region"].apply(lambda abbrv: abbrev_to_us_state.get(abbrv))
+        df = df.rename(columns={"Gas HDD": "HDD"})
+    else:
+        pass
+
+    return df
+
+
 def get_prescient_weather_data_via_csv(state):
 
-    path = os.path.join(get_base_path(), "data", "weather", state, f"{state.lower()}_hdd_cdd_obs.csv")
-    df = pd.read_csv(path)
-    return df
+    df = prescient_weather_data_via_csv_handler(state)
+    standardizied_df = standardize_df(df)
+    standardizied_df = standardizied_df[standardizied_df["Region"] == state]
+
+    return standardizied_df
 
 def get_prescient_weather_data(state):
     """
@@ -221,7 +263,12 @@ class Weather(ABC):
         return pd.to_datetime(date_ser, format="%Y-%m-%d")
 
     def refactor_date(self):
-        self.raw_df[self.get_standardizied_name()] = self.raw_df[self.get_native_date_name()]
+        if self.get_native_date_name() in self.raw_df and not self.get_standardizied_name() in self.raw_df:
+            self.raw_df[self.get_standardizied_name()] = self.raw_df[self.get_native_date_name()]
+        elif not (self.get_standardizied_name() in self.raw_df):
+            raise ValueError(f"Native Name {self.get_native_date_name()} not Found in Dataframe "
+                             f"and Standardized Name {self.get_standardizied_name()} not found."
+                             f" Dataframe cannot be refactored.")
         date_ser = self.raw_df[self.get_standardizied_name()]
         self.raw_df[self.get_standardizied_name()] = self._convert_to_datetime(date_ser)
         assert(self.raw_df[self.get_standardizied_name()].dtype == "datetime64[ns]")

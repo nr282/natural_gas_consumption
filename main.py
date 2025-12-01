@@ -11,14 +11,23 @@ How are we going to handle configuration.
     - Should we institute the configruation on a per-state basis
     -
 
+TODO: We should be able to run this in the could in short order.
+TODO: We should be able to run this in the cloud as early as 12/2/2025.
+    TODO: -Need to update the logging so that the output has a unique log indexed by state and by model type.
+
 """
 
 import pandas as pd
 from config import config
 from data import data_preparation
 from models.residential import fit_residential_model
+from models.commercial import fit_commercial_model
+from models.electric_power_consumption import fit_electric_power_model
 import argparse
 from inference.inference import inference_engine
+from multiprocessing_methods import multiprocessing_framework
+import logging
+from typing import List
 
 def read_configuration():
     """
@@ -31,23 +40,14 @@ def read_configuration():
     return configuration
 
 
-def main():
-
-    #TODO: Need to calculate the correct values below.
-
+def residential_training_func(state):
 
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
     end_test_time = "2024-12-31"
-    state = "Virginia"
-    method = "LINEAR"
-    consumption_factor_method = "CUSTOM_WITH_PYWEATHER"
-
-    #TODO: CUSTOM_WITH_PYWEATHER
-    #TODO: It may be a consideration to refactor to consume
-    #TODO: this information as a set of kwargs.
-
+    method = "GLOBAL"
+    consumption_factor_method = "POPULATION_WEIGHTED_HDD"
     fit_residential_model(start_training_time,
                           end_training_time,
                           start_test_time,
@@ -55,6 +55,53 @@ def main():
                           state,
                           method=method,
                           consumption_factor_method=consumption_factor_method)
+
+def commercial_training_func(state):
+
+    start_training_time = "2023-01-01"
+    end_training_time = "2023-12-31"
+    start_test_time = "2024-01-01"
+    end_test_time = "2024-12-31"
+    method = "GLOBAL"
+    consumption_factor_method = "POPULATION_WEIGHTED_HDD"
+    fit_commercial_model(start_training_time,
+                          end_training_time,
+                          start_test_time,
+                          end_test_time,
+                          state,
+                          method=method,
+                          consumption_factor_method=consumption_factor_method)
+
+
+def electric_power_training_func(state):
+
+    start_training_time = "2023-01-01"
+    end_training_time = "2023-12-31"
+    start_test_time = "2024-01-01"
+    end_test_time = "2024-12-31"
+    method = "GLOBAL"
+    consumption_factor_method = "POPULATION_WEIGHTED_CDD"
+    fit_electric_power_model(start_training_time,
+                          end_training_time,
+                          start_test_time,
+                          end_test_time,
+                          state,
+                          method=method,
+                          consumption_factor_method=consumption_factor_method)
+
+def run_multiprocessing_over_states_for_residential(states: List[str]):
+    multiprocessing_framework.run_states_in_parallel(states, residential_training_func)
+
+def run_multiprocessing_over_states_for_commercial(states: List[str]):
+    multiprocessing_framework.run_states_in_parallel(states, commercial_training_func)
+
+def run_multiprocessing_over_states_for_electric_power(states: List[str]):
+    multiprocessing_framework.run_states_in_parallel(states, electric_power_training_func)
+
+
+def main():
+    electric_power_training_func("New York")
+
 
 def run_inference():
     """
@@ -69,14 +116,11 @@ def run_inference():
 if __name__ == "__main__":
 
 
-    #TODO: 14.07% with Prescient
-    #TODO: 15.14 with Pyweather
-
-    main()
-
     parser = argparse.ArgumentParser(description="Parses arguments")
     parser.add_argument("--training", action='store_true', help="States if we want to run training")
     parser.add_argument("--inference", action='store_true', help="States if we want to run inference")
+    parser.add_argument("--model_type", help="Either Residential, Commercial or Electric Power", default="Residential")
+
 
     args = parser.parse_args()
 
@@ -85,9 +129,15 @@ if __name__ == "__main__":
 
 
     if args.training:
-        main()
+        if args.model_type == "Residential":
+            run_multiprocessing_over_states_for_residential(["New York"])
+        elif args.model_type == "Commercial":
+            run_multiprocessing_over_states_for_commercial(["New York"])
+        elif args.model_type == "Electric Power":
+            run_multiprocessing_over_states_for_electric_power(["New York"])
+        else:
+            raise ValueError(f"Model type provided by: {args.model_type} is not supported.")
     elif args.inference:
         run_inference()
-
 
 

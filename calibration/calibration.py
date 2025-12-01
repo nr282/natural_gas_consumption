@@ -103,7 +103,11 @@ def fit_slope(eia_monthly_time_series, state: str):
             avg = sum(slope_vals_for_month) / len(slope_vals_for_month)
             slope_values.append(avg)
 
-    slope_average = sum(slope_values) / len(slope_values)
+
+    if len(slope_values) == 0:
+        return float("nan")
+    else:
+        slope_average = sum(slope_values) / len(slope_values)
     return slope_average
 
 def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
