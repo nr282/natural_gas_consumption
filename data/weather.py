@@ -379,15 +379,27 @@ class PrescientWeather(Weather):
         raise NotImplemented()
 
     def get_cdd(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
-        raise NotImplemented()
+        date_range = pd.date_range(start=start, end=end, freq="D")
+        df = pd.DataFrame(date_range, columns=["Date"])
+        res = df.merge(self.raw_df, on="Date", how="left")
+        res = res[["Date", "Population CDD"]]
+        res = res.rename(columns={"Population CDD": "CDD"})
+        return res
 
     def get_hdd(self, locations: List[location], start: datetime, end: datetime) -> dict:
 
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
         res = df.merge(self.raw_df, on="Date", how="left")
-        res = res[["Date", "hdd"]]
-        res = res.rename(columns={"hdd": "HDD"})
+
+        if "hdd" in res.columns:
+            res = res[["Date", "hdd"]]
+            res = res.rename(columns={"hdd": "HDD"})
+        elif "HDD" in res.columns:
+            res = res[["Date", "HDD"]]
+        else:
+            raise ValueError("HDD column not found in dataframe.")
+
         return res
 
     def get_type_of_temperature(self) -> TemperatureType:

@@ -70,10 +70,14 @@ def calculate_consumption_factor_via_pop_weighted_weather(population_weighted_we
     Calculates the consumption factor for Prescient Weather.
     """
 
-
-    df = population_weighted_weather.get_cdd(location,
-                                             start_datetime,
-                                             end_datetime)
+    if degree_day_type == "CDD":
+        df = population_weighted_weather.get_cdd(location,
+                                                 start_datetime,
+                                                 end_datetime)
+    else:
+        df = population_weighted_weather.get_hdd(location,
+                                                 start_datetime,
+                                                 end_datetime)
 
     min_value = df[degree_day_type].min()
     max_value = df[degree_day_type].max()

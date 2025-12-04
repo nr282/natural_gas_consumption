@@ -28,6 +28,7 @@ from inference.inference import inference_engine
 from multiprocessing_methods import multiprocessing_framework
 import logging
 from typing import List
+from data.eia_consumption.eia_geography_mappings import us_state_to_abbrev
 
 def read_configuration():
     """
@@ -121,20 +122,20 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action='store_true', help="States if we want to run inference")
     parser.add_argument("--model_type", help="Either Residential, Commercial or Electric Power", default="Residential")
 
-
     args = parser.parse_args()
 
     if args.training and args.inference:
         raise ValueError("Cannot both run training and inference at the same time")
-
+    
+    states = list(us_state_to_abbrev.keys())
 
     if args.training:
         if args.model_type == "Residential":
-            run_multiprocessing_over_states_for_residential(["New York"])
+            run_multiprocessing_over_states_for_residential(states)
         elif args.model_type == "Commercial":
-            run_multiprocessing_over_states_for_commercial(["New York"])
+            run_multiprocessing_over_states_for_commercial(states)
         elif args.model_type == "Electric Power":
-            run_multiprocessing_over_states_for_electric_power(["New York"])
+            run_multiprocessing_over_states_for_electric_power(states)
         else:
             raise ValueError(f"Model type provided by: {args.model_type} is not supported.")
     elif args.inference:
