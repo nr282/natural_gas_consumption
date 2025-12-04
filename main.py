@@ -29,6 +29,7 @@ from multiprocessing_methods import multiprocessing_framework
 import logging
 from typing import List
 from data.eia_consumption.eia_geography_mappings import us_state_to_abbrev
+from multiprocessing_methods.multiprocessing_framework import init_logs
 
 def read_configuration():
     """
@@ -43,6 +44,8 @@ def read_configuration():
 
 def residential_training_func(state):
 
+
+    init_logs(state, "residential")
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
@@ -59,6 +62,7 @@ def residential_training_func(state):
 
 def commercial_training_func(state):
 
+    init_logs(state, "commercial")
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
@@ -75,7 +79,7 @@ def commercial_training_func(state):
 
 
 def electric_power_training_func(state):
-
+    init_logs(state, "electric")
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"

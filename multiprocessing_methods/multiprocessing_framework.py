@@ -26,19 +26,17 @@ def worker_function(name):
 def get_path_to_logs():
     pass
 
-def init_logs(log_id: str):
+def init_logs(state: str, model_type: str = "residential"):
 
     path = get_path_to_logs()
 
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        filename=f'output_{log_id}.log',
+        filename=f'output_{state}_{model_type}.log',
         filemode='w'  # Overwrite the log file each time
     )
 
-    logging.debug("This message goes to the file.")
-    logging.info("This message also goes to the file.")
 
 def square(log_id: int):
 
