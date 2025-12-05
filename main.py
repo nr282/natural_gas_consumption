@@ -7,13 +7,9 @@ The main module will primarily be run out of main function.
     - It is likely the case that we will need to also institute the config file also.
 
 
-How are we going to handle configuration.
-    - Should we institute the configruation on a per-state basis
-    -
 
-TODO: We should be able to run this in the could in short order.
-TODO: We should be able to run this in the cloud as early as 12/2/2025.
-    TODO: -Need to update the logging so that the output has a unique log indexed by state and by model type.
+
+
 
 """
 

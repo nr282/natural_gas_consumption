@@ -63,7 +63,7 @@ def test_1():
 def run_states_in_parallel(states, training_func):
 
     s_n = len(states)
-    with Pool(processes=s_n) as pool:  # Create a pool with 4 worker processes
+    with Pool(processes=s_n) as pool:  # Create a pool with 50 worker processes
         results = pool.map(training_func, states)
 
     if all(results):
