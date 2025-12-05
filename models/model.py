@@ -16,9 +16,6 @@ import logging
 
 UPPER_MULTIPLICATIVE_BOUND = 2
 
-logging.basicConfig(
-    level=logging.DEBUG
-)
 
 class Model(ABC):
     """
@@ -121,7 +118,8 @@ class Model(ABC):
                         end_datetime: str,
                         eia_start_time: str,
                         eia_end_time: str,
-                        data: dict):
+                        data: dict,
+                        app_params: dict = None):
         """
         Globally optimizes the model parameters.
         """
@@ -133,13 +131,17 @@ class Model(ABC):
                                                                                    eia_start_time,
                                                                                    eia_end_time,
                                                                                    params,
-                                                                                   data)
+                                                                                   data,
+                                                                                   app_params=app_params)
 
             if estimated_daily_data is None or estimated_monthly_data is None or params is None:
                 return float('inf')
 
             relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
-            logging.info(f"The relative error is {relative_error} for params {params}")
+            log_handler = app_params["log_handler"]
+            file_handler = app_params["file_handler"]
+            log_handler.info(f"The relative error is {relative_error} for params {params}")
+            file_handler.flush()
             return relative_error
 
         bounds = self.calculate_bounds()
@@ -152,7 +154,8 @@ class Model(ABC):
                                                      end_datetime: str,
                                                      eia_start_time: str,
                                                      eia_end_time: str,
-                                                     data: dict) -> Tuple[dict, float]:
+                                                     data: dict,
+                                                     app_params: dict = None) -> Tuple[dict, float]:
         """
         The goal of the run inference engine with global optimization is to find the optimal
         parameters for the function associated with self.inference_model which is an abstract
@@ -164,7 +167,8 @@ class Model(ABC):
                                                          end_datetime,
                                                          eia_start_time,
                                                          eia_end_time,
-                                                         data)
+                                                         data,
+                                                         app_params)
         return params, opt_relative_error
 
     def run_inference_engine(self,
@@ -194,7 +198,6 @@ class Model(ABC):
 
             relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
 
-            import logging
             logging.info(f"The relative error is {relative_error} for params {params}")
             logging.info(f"The estimated monthly data is: {estimated_monthly_data}")
             logging.info(f"The actual data is: {data['full_eia_data']}")

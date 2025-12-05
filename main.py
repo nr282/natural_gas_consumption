@@ -6,11 +6,6 @@ The main module will primarily be run out of main function.
     - Then it will place the dependencies in the major loop of the application.
     - It is likely the case that we will need to also institute the config file also.
 
-
-
-
-
-
 """
 
 import pandas as pd
@@ -39,26 +34,31 @@ def read_configuration():
 
 
 def residential_training_func(state):
-
-
-    init_logs(state, "residential")
+    file_handler, log_handler = init_logs(state, "residential")
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
     end_test_time = "2024-12-31"
     method = "GLOBAL"
     consumption_factor_method = "POPULATION_WEIGHTED_HDD"
+    d = dict()
+    d["file_handler"] = file_handler
+    d["log_handler"] = log_handler
     fit_residential_model(start_training_time,
                           end_training_time,
                           start_test_time,
                           end_test_time,
                           state,
                           method=method,
-                          consumption_factor_method=consumption_factor_method)
+                          consumption_factor_method=consumption_factor_method,
+                          app_params=d)
 
 def commercial_training_func(state):
 
-    init_logs(state, "commercial")
+    file_handler, log_handler = init_logs(state, "commercial")
+    d = dict()
+    d["file_handler"] = file_handler
+    d["log_handler"] = log_handler
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
@@ -71,11 +71,12 @@ def commercial_training_func(state):
                           end_test_time,
                           state,
                           method=method,
-                          consumption_factor_method=consumption_factor_method)
+                          consumption_factor_method=consumption_factor_method,
+                          app_params=d)
 
 
 def electric_power_training_func(state):
-    init_logs(state, "electric")
+    file_handler, log_handler = init_logs(state, "electric")
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
@@ -128,7 +129,7 @@ if __name__ == "__main__":
         raise ValueError("Cannot both run training and inference at the same time")
     
     states = list(us_state_to_abbrev.keys())
-
+    states = ["Alabama", "New York"]
     if args.training:
         if args.model_type == "Residential":
             run_multiprocessing_over_states_for_residential(states)
@@ -140,5 +141,5 @@ if __name__ == "__main__":
             raise ValueError(f"Model type provided by: {args.model_type} is not supported.")
     elif args.inference:
         run_inference()
-
+    
 

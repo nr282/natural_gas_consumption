@@ -8,7 +8,7 @@ TODO:
 
 import datetime
 from abc import ABC
-
+import time
 import pandas as pd
 import numpy as np
 from calibration.calibration import calibration
@@ -25,10 +25,6 @@ import pymc as pm
 from models.model import Model
 from typing import Tuple
 import calendar
-
-logging.basicConfig(
-    level=logging.DEBUG
-)
 
 
 def map_date_to_index(consumption_factor: pd.DataFrame):
@@ -89,11 +85,15 @@ class CommercialModel(Model):
                   eia_start_datetime: str,
                   eia_end_datetime: str,
                   params: dict,
-                  data: dict):
+                  data: dict,
+                  app_params: dict = None):
         """
         Inference in the commercial model.
 
         """
+
+        log_handler = app_params.get("log_handler")
+        file_handler = app_params.get("file_handler")
 
         dates = pd.date_range(start_datetime, end_datetime)
         consumption_factor_values = data["consumption_factor_values"]["Consumption_Factor_Normalizied"].values
@@ -120,7 +120,9 @@ class CommercialModel(Model):
                                                   observed=consumption_factor_lagged_values.astype(np.float32),
                                                   dims="dates")
 
-            logging.debug("Parameters are provided by: {params}".format(params=params))
+
+            log_handler.debug("Parameters are provided by: {params}".format(params=params))
+            file_handler.flush()
 
             alpha = pm.Normal("alpha_1",
                               mu=float(params.get("alpha_mu")),
@@ -148,7 +150,8 @@ class CommercialModel(Model):
                                                           data["state"],
                                                           eia_monthly_start_date=eia_start_datetime,
                                                           eia_monthly_end_date=eia_end_datetime,
-                                                          sigma=params.get("monthly_consumption_error"))
+                                                          sigma=params.get("monthly_consumption_error"),
+                                                          app_params=app_params)
             try:
                 idata = pm.sample(draws=200, tune=200)
             except:
@@ -206,12 +209,17 @@ def calculate_eia_monthly_consumption_constraints(model,
                                                   state: str,
                                                   eia_monthly_start_date="2022-01-01",
                                                   eia_monthly_end_date="2024-01-01",
-                                                  sigma=10):
+                                                  sigma=10,
+                                                  app_params: dict = None):
     """
     Calculate eia monthly consumption constraints.
     """
 
-    print("Calculating EIA Monthly Constraints...")
+    log_handler = app_params.get("log_handler")
+    file_handler = app_params.get("file_handler")
+
+    log_handler.info("Calculating EIA Monthly Constraints...")
+    file_handler.flush()
 
     eia_monthly_start_date = datetime.datetime.strptime(eia_monthly_start_date, "%Y-%m-%d")
     eia_monthly_end_date = datetime.datetime.strptime(eia_monthly_end_date, "%Y-%m-%d")
@@ -228,7 +236,8 @@ def calculate_eia_monthly_consumption_constraints(model,
 
         if is_data_between_dates(eia_monthly_start_date, eia_monthly_end_date, start_month_dt):
 
-            print(f"Applying Constraint for {start_date_str} with index {index}")
+            log_handler.info(f"Applying Constraint for {start_date_str} with index {index}")
+            file_handler.flush()
             monthly_value = float(row[state])
             day_of_week, end_of_month_day_number = calendar.monthrange(year, month)
             end_of_month_datetime = datetime.datetime(year, month, end_of_month_day_number)
@@ -274,7 +283,8 @@ def get_eia_commercial_data(start_date: datetime.date, end_date: datetime.date):
 def load_commercial_data(state,
                           start_training_time,
                           end_training_time,
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params: dict = None):
     """
     Loads residential related data primarily from EIA into a dictionary.
 
@@ -282,10 +292,14 @@ def load_commercial_data(state,
     :return:
     """
 
-    logging.info("Acquiring EIA Commercial Data")
+    file_handler = app_params.get("file_handler")
+    log_handler = app_params.get("log_handler")
+
+    log_handler.info("Acquiring EIA Commercial Data")
     eia_data = get_eia_commercial_data(start_training_time, end_training_time)
     eia_data = eia_data[[state]]
-    logging.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
+    log_handler.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
+    file_handler.flush()
 
     if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
 
@@ -319,7 +333,8 @@ def fit_commercial_model(start_training_time: str,
                           eia_end_time: str,
                           state: str,
                           method="GLOBAL",
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params: dict = None):
     """
     Fits the residential model.
 
@@ -328,10 +343,14 @@ def fit_commercial_model(start_training_time: str,
     :return:
     """
 
+    log_handler = app_params.get("log_handler")
+    file_handler = app_params.get("file_handler")
+
     data, consumption_factor, eia_data = load_commercial_data(state,
                                                                start_training_time,
                                                                end_training_time,
-                                                               consumption_factor_method=consumption_factor_method)
+                                                               consumption_factor_method=consumption_factor_method,
+                                                               app_params=app_params)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
@@ -354,7 +373,8 @@ def fit_commercial_model(start_training_time: str,
             end_training_time,
             eia_start_time,
             eia_end_time,
-            data)
+            data,
+            app_params=app_params)
 
     else:
         best_parameters, optimal_rel_error = CommercialModel(calibrated_parameters, params).run_inference_engine(
@@ -365,8 +385,9 @@ def fit_commercial_model(start_training_time: str,
             params,
             data)
 
-    logging.info("Parameters are provided by {params} ".format(params=best_parameters))
-    logging.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
+    log_handler.info("Parameters are provided by {params} ".format(params=best_parameters))
+    log_handler.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
+    file_handler.flush()
 
 
 if __name__ == '__main__':

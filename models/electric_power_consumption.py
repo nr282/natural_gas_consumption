@@ -24,9 +24,6 @@ from models.model import Model
 from typing import Tuple
 import calendar
 
-logging.basicConfig(
-    level=logging.DEBUG
-)
 
 
 def map_date_to_index(consumption_factor: pd.DataFrame):

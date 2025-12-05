@@ -36,10 +36,7 @@ import logging
 from .mathematical_models_natural_gas import calculate_hdd, calculate_cdd, TemperatureType
 from utils import *
 
-
-logging.basicConfig(level=logging.INFO)
 location = namedtuple('Location', ['Latitude', 'Longitude'])
-
 
 def get_longitude_and_latitude_of_locations():
     d = {

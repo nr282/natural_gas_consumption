@@ -17,6 +17,7 @@ The plan here is:
 import multiprocessing
 from multiprocessing import Pool
 import logging
+import time
 
 
 def worker_function(name):
@@ -28,14 +29,25 @@ def get_path_to_logs():
 
 def init_logs(state: str, model_type: str = "residential"):
 
-    path = get_path_to_logs()
 
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        filename=f'output_{state}_{model_type}.log',
-        filemode='w'  # Overwrite the log file each time
-    )
+    file_name = f'output_{state}_{model_type}.log'
+
+    # Create a logger
+    logger = logging.getLogger(file_name)
+    logger.setLevel(logging.INFO)
+
+    # Create a FileHandler
+    file_handler = logging.FileHandler(file_name)
+    logger.addHandler(file_handler)
+
+    # Log some messages
+    logger.info("Initialization of the logs...")
+
+    # Flush the file handler
+    file_handler.flush()
+    time.sleep(0.5)
+
+    return file_handler, logger
 
 
 def square(log_id: int):
@@ -70,3 +82,9 @@ def run_states_in_parallel(states, training_func):
         logging.info("All states completed successfully.")
     else:
         logging.info("One or more states failed.")
+
+
+if __name__ == "__main__":
+
+
+    multiprocessing_example()

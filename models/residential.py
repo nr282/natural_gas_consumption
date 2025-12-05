@@ -27,10 +27,6 @@ from models.model import Model
 from typing import Tuple
 import calendar
 
-logging.basicConfig(
-    level=logging.DEBUG
-)
-
 def map_date_to_index(consumption_factor: pd.DataFrame):
     """
     Map the date to an index and map the index to a date.
@@ -88,7 +84,8 @@ class ResidentialModel(Model):
                 eia_start_datetime: str,
                 eia_end_datetime: str,
                 params: dict,
-                data: dict):
+                data: dict,
+                app_params: dict = None):
         """
         Inference in the residential model.
 
@@ -146,7 +143,8 @@ class ResidentialModel(Model):
                                                           data["state"],
                                                           eia_monthly_start_date=eia_start_datetime,
                                                           eia_monthly_end_date=eia_end_datetime,
-                                                          sigma=params.get("monthly_consumption_error"))
+                                                          sigma=params.get("monthly_consumption_error"),
+                                                          app_params=app_params)
             try:
                 idata = pm.sample(draws=200, tune=200)
             except:
@@ -309,13 +307,16 @@ def calculate_eia_monthly_consumption_constraints(model,
                                                   state: str,
                                                   eia_monthly_start_date="2022-01-01",
                                                   eia_monthly_end_date="2024-01-01",
-                                                  sigma=10):
+                                                  sigma=10,
+                                                  app_params: dict = None):
     """
     Calculate eia monthly consumption constraints.
     """
 
+    logger = app_params["log_handler"]
+    file_handler = app_params["file_handler"]
 
-    print("Calculating EIA Monthly Constraints...")
+    logger.info("Calculating EIA Monthly Constraints...")
 
     eia_monthly_start_date = datetime.datetime.strptime(eia_monthly_start_date, "%Y-%m-%d")
     eia_monthly_end_date = datetime.datetime.strptime(eia_monthly_end_date, "%Y-%m-%d")
@@ -332,7 +333,7 @@ def calculate_eia_monthly_consumption_constraints(model,
 
         if is_data_between_dates(eia_monthly_start_date, eia_monthly_end_date, start_month_dt):
 
-            print(f"Applying Constraint for {start_date_str} with index {index}")
+            logger.info(f"Applying Constraint for {start_date_str} with index {index}")
             monthly_value = float(row[state])
             day_of_week, end_of_month_day_number = calendar.monthrange(year, month)
             end_of_month_datetime = datetime.datetime(year, month, end_of_month_day_number)
@@ -347,6 +348,8 @@ def calculate_eia_monthly_consumption_constraints(model,
                                                    observed=monthly_value)
 
             constraint_random_variables[start_date_str] = constraint_random_variable
+
+    file_handler.flush()
     return constraint_random_variables
 
 def save_parameters(accuracy_result):
@@ -377,7 +380,8 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
 def load_residential_data(state,
                           start_training_time,
                           end_training_time,
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params=None):
     """
     Loads residential related data primarily from EIA into a dictionary.
 
@@ -385,10 +389,14 @@ def load_residential_data(state,
     :return:
     """
 
-    logging.info("Acquiring EIA Residential Data")
+    file_handler = app_params["file_handler"]
+    log_handler = app_params["log_handler"]
+
+
+    log_handler.info("Acquiring EIA Residential Data")
     eia_data = get_eia_residential_data(start_training_time, end_training_time)
     eia_data = eia_data[[state]]
-    logging.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
+    log_handler.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
 
     if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
 
@@ -423,7 +431,8 @@ def fit_residential_model(start_training_time: str,
                           eia_end_time: str,
                           state: str,
                           method="GLOBAL",
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params=None):
     """
     Fits the residential model.
 
@@ -432,10 +441,17 @@ def fit_residential_model(start_training_time: str,
     :return:
     """
 
+    log_handler = app_params["log_handler"]
+    file_handler = app_params["file_handler"]
+
+    log_handler.info("Begin fitting residential model...")
+    file_handler.flush()
+
     data, consumption_factor, eia_data = load_residential_data(state,
                                                                start_training_time,
                                                                end_training_time,
-                                                               consumption_factor_method=consumption_factor_method)
+                                                               consumption_factor_method=consumption_factor_method,
+                                                               app_params=app_params)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
@@ -458,7 +474,8 @@ def fit_residential_model(start_training_time: str,
                                                                                                                     end_training_time,
                                                                                                                     eia_start_time,
                                                                                                                     eia_end_time,
-                                                                                                                    data)
+                                                                                                                    data,
+                                                                                                                    app_params=app_params)
 
     elif method == "LINEAR":
 
@@ -467,7 +484,8 @@ def fit_residential_model(start_training_time: str,
                                                                                                                                 eia_start_time,
                                                                                                                                 eia_end_time,
                                                                                                                                 params,
-                                                                                                                                data)
+                                                                                                                                data,
+                                                                                                                                app_params)
 
     else:
         best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters, params).run_inference_engine(
@@ -476,12 +494,13 @@ def fit_residential_model(start_training_time: str,
                                                                                                                 eia_start_time,
                                                                                                                 eia_end_time,
                                                                                                                 params,
-                                                                                                                data)
+                                                                                                                data,
+                                                                                                                app_params)
 
 
-    logging.info("Parameters are provided by {params} ".format(params=best_parameters))
-    logging.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
-
+    log_handler.info("Parameters are provided by {params} ".format(params=best_parameters))
+    log_handler.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
+    file_handler.flush()
 
 if __name__ == '__main__':
     pass
