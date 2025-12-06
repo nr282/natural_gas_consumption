@@ -77,6 +77,9 @@ def commercial_training_func(state):
 
 def electric_power_training_func(state):
     file_handler, log_handler = init_logs(state, "electric")
+    d=dict()
+    d["file_handler"] = file_handler
+    d["log_handler"] = log_handler
     start_training_time = "2023-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
@@ -89,7 +92,8 @@ def electric_power_training_func(state):
                           end_test_time,
                           state,
                           method=method,
-                          consumption_factor_method=consumption_factor_method)
+                          consumption_factor_method=consumption_factor_method,
+                          app_params=d)
 
 def run_multiprocessing_over_states_for_residential(states: List[str]):
     multiprocessing_framework.run_states_in_parallel(states, residential_training_func)

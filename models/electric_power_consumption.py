@@ -9,6 +9,8 @@ from abc import ABC
 
 import pandas as pd
 import numpy as np
+from pkg_resources import file_ns_handler
+
 from calibration.calibration import calibration
 from data.consumption_factor.consumption_factor_calculation import (calculate_consumption_factor,
                                                                     calculate_consumption_factor_via_pop_weighted_weather)
@@ -84,11 +86,14 @@ class ElectricPowerModel(Model):
                   eia_start_datetime: str,
                   eia_end_datetime: str,
                   params: dict,
-                  data: dict):
+                  data: dict,
+                  app_params=None):
         """
         Inference in the residential model.
-
         """
+
+        log_handler = app_params.get("log_handler")
+        file_handler = app_params.get("file_handler")
 
         dates = pd.date_range(start_datetime, end_datetime)
         consumption_factor_values = data["consumption_factor_values"]["Consumption_Factor_Normalizied"].values
@@ -115,7 +120,8 @@ class ElectricPowerModel(Model):
                                                   observed=consumption_factor_lagged_values.astype(np.float32),
                                                   dims="dates")
 
-            logging.debug("Parameters are provided by: {params}".format(params=params))
+            log_handler.debug("Parameters are provided by: {params}".format(params=params))
+            file_handler.flush()
 
             alpha = pm.Normal("alpha_1",
                               mu=float(params.get("alpha_mu")),
@@ -267,7 +273,8 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
 def load_electric_power_data(state,
                           start_training_time,
                           end_training_time,
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params=None):
     """
     Loads residential related data primarily from EIA into a dictionary.
 
@@ -275,10 +282,14 @@ def load_electric_power_data(state,
     :return:
     """
 
-    logging.info("Acquiring EIA Electric Power Data")
+    log_handler = app_params.get("log_handler")
+    file_handler = app_params.get("file_handler")
+
+    log_handler.info("Acquiring EIA Electric Power Data")
     eia_data = get_eia_residential_data(start_training_time, end_training_time)
     eia_data = eia_data[[state]]
-    logging.info(f"Finished EIA Electric Power Data. Some EIA Data is provided as: {eia_data.head()}")
+    log_handler.info(f"Finished EIA Electric Power Data. Some EIA Data is provided as: {eia_data.head()}")
+    file_handler.flush()
 
     if consumption_factor_method == "POPULATION_WEIGHTED_CDD":
 
@@ -317,7 +328,8 @@ def fit_electric_power_model(start_training_time: str,
                           eia_end_time: str,
                           state: str,
                           method="GLOBAL",
-                          consumption_factor_method="POPULATION_WEIGHTED_HDD"):
+                          consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          app_params=None):
     """
     Fits the residential model.
 
@@ -326,10 +338,14 @@ def fit_electric_power_model(start_training_time: str,
     :return:
     """
 
+    log_handler = app_params.get("log_handler")
+    file_handler = app_params.get("file_handler")
+
     data, consumption_factor, eia_data = load_electric_power_data(state,
                                                                start_training_time,
                                                                end_training_time,
-                                                               consumption_factor_method=consumption_factor_method)
+                                                               consumption_factor_method=consumption_factor_method,
+                                                               app_params=app_params)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
@@ -352,7 +368,8 @@ def fit_electric_power_model(start_training_time: str,
             end_training_time,
             eia_start_time,
             eia_end_time,
-            data)
+            data,
+            app_params=app_params)
 
     else:
         best_parameters, optimal_rel_error = ElectricPowerModel(calibrated_parameters, params).run_inference_engine(
@@ -363,8 +380,9 @@ def fit_electric_power_model(start_training_time: str,
             params,
             data)
 
-    logging.info("Parameters are provided by {params} ".format(params=best_parameters))
-    logging.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
+    log_handler.info("Parameters are provided by {params} ".format(params=best_parameters))
+    log_handler.info(f"Relative Error {optimal_rel_error}".format(val=optimal_rel_error))
+    file_handler.flush()
 
 
 if __name__ == '__main__':
