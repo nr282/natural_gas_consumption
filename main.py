@@ -25,9 +25,7 @@ from multiprocessing_methods.multiprocessing_framework import init_logs
 def read_configuration():
     """
     Reads the configuration that will be used later.
-
     """
-
 
     configuration = config.get_configuration()
     return configuration

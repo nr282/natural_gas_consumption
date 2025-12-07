@@ -104,6 +104,9 @@ class ResidentialModel(Model):
         }
         
         with pm.Model(coords=coords) as model:
+
+            #TODO: the question is where below does the model need to be modified to handle the forecast.
+
             consumption_factor = pm.Normal("consumption_factor",
                                            mu=mean_consumption_factor,
                                            sigma=variance_consumption_factor,
