@@ -35,6 +35,19 @@ def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
 def fit_monthly_consumption_error(eia_data: pd.DataFrame, state: str):
     return 0.1
 
+def fit_theta_1_mu_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * eia_data[state].astype(float).mean() / 30
+
+def fit_theta_1_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * 0.1 * eia_data[state].astype(float).mean() / 30
+
+def fit_theta_2_mu_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * eia_data[state].astype(float).mean() / 30
+
+def fit_theta_2_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * 0.1 * eia_data[state].astype(float).mean() / 30
+
+
 def calibration(consumption_factor,
                 eia_data: pd.DataFrame,
                 state: str
@@ -50,6 +63,11 @@ def calibration(consumption_factor,
     daily_consumption_error = fit_daily_consumption_error(eia_data, state)
     monthly_consumption_error = fit_monthly_consumption_error(eia_data, state)
 
+    theta_1_mu = fit_theta_1_mu_parameter(consumption_factor, eia_data, state)
+    theta_1_sig = fit_theta_1_sig_parameter(consumption_factor, eia_data, state)
+    theta_2_mu = fit_theta_2_mu_parameter(consumption_factor, eia_data, state)
+    theta_2_sig = fit_theta_2_sig_parameter(consumption_factor, eia_data, state)
+
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
             "alpha_2_mu": 0.1 * sensitivity_parameter,
@@ -57,7 +75,11 @@ def calibration(consumption_factor,
             "minimum_consumption_mu": minimum_consumption,
             "minimum_consumption_sig": 0.5 * minimum_consumption,
             "daily_consumption_error": daily_consumption_error,
-            "monthly_consumption_error": monthly_consumption_error}
+            "monthly_consumption_error": monthly_consumption_error,
+            "theta_1_mu": theta_1_mu,
+            "theta_1_sig": theta_1_sig,
+            "theta_2_mu": theta_2_mu,
+            "theta_2_sig": theta_2_sig}
 
 def fit_slope(eia_monthly_time_series, state: str):
     """

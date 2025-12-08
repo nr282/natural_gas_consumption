@@ -108,7 +108,7 @@ def prescient_weather_data_via_csv_handler(state):
     p_0 = os.path.join(get_base_path(), "data", "weather", state, f"{state.lower()}_hdd_cdd_obs.csv")
     p_1 = os.path.join(get_base_path(), "data", "weather", "State", f"regional_degree_day_history_daily_v2025.csv")
 
-    paths_for_prescient_weather_data = [p_0, p_1]
+    paths_for_prescient_weather_data = [p_1, p_0]
     for path in paths_for_prescient_weather_data:
         if os.path.exists(path):
             df = pd.read_csv(path)

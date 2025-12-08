@@ -2,18 +2,6 @@
 Acquire Prescient Weather Data via this module.
 
 The module will aim to acquire the Prescient Weather Data.
-
-
-TODO:
-    1. See where the processes are in AWS EC2
-        1. I made some progress. It looks like the bigger instance helps alot.
-        2. Progress was made with instance type: c5d.24xlarge
-            1. This instance type costs a lot of money so it was shut down.
-    2. Create Forecast Weather Framework for
-        1. Subseasonal Data
-        2. Mid range Data
-    3. Update the model to handle these new weather forecasts.
-    4. Check the results for Virginia using 2022, 2023.
 """
 
 import requests
@@ -216,14 +204,8 @@ def get_weather_data_for_all_states(init_date: str, degree_day_type: str):
     return df
 
 
-
 if __name__ == "__main__":
 
     df = get_weather_data_for_all_states("2025-02-01", "popcdd")
-
-
-
-    import pdb
-    pdb.set_trace()
 
 

@@ -21,6 +21,7 @@ from data.consumption_factor import consumption_factor_calculation
 from data.state_config.virginia.virginia_consumption_factor import VirginiaPopulationData
 from data.weather import PyWeatherData, PrescientWeather
 from data.eia_consumption.eia_consumption import get_eia_consumption_data_in_pivot_format
+from models.seasonality.seasonality import get_time_series_1, get_time_series_2
 import logging
 import pymc as pm
 from models.model import Model
@@ -121,11 +122,33 @@ class ResidentialModel(Model):
 
             logging.debug("Parameters are provided by: {params}".format(params=params))
 
+            #Alpha is a measure of sensitivity to weather
             alpha = pm.Normal("alpha_1",
                               mu=float(params.get("alpha_mu")),
                               sigma=float(params.get("alpha_sigma")))
 
             alpha_2 = pm.Normal("alpha_2", mu=float(params.get("alpha_2_mu")), sigma=float(params.get("alpha_2_sigma")))
+
+            #Theta is sensitivity to time
+
+            #Theta 1 is the coefficient on a cosine wave of period 12 months
+            theta_1 = pm.Normal("theta_1", mu=float(params.get("theta_1_mu")), sigma=float(params.get("theta_1_sig")))
+
+
+            #Theta 2 is the coefficient on a cosine wave of period 6 months
+            theta_2 = pm.Normal("theta_2", mu=float(params.get("theta_2_mu")), sigma=float(params.get("theta_2_sig")))
+
+            time_1 = pm.Normal("time_dependent_factor_1",
+                                                  mu=0,
+                                                  sigma=0,
+                                                  observed=get_time_series_1(dates),
+                                                  dims="dates")
+
+            time_2 = pm.Normal("time_dependent_factor_2",
+                               mu=0,
+                               sigma=0,
+                               observed=get_time_series_2(dates),
+                               dims="dates")
 
             minimum_consumption = pm.Normal("minimum_consumption",
                                             mu=params.get("minimum_consumption_mu"),
@@ -133,7 +156,7 @@ class ResidentialModel(Model):
 
 
             eia_daily_observations = pm.Normal("eia_observations",
-                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged + minimum_consumption,
+                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged + minimum_consumption + theta_1 * time_1 + theta_2 * time_2,
                                                sigma=params.get("daily_consumption_error"),
                                                dims="dates")
 
@@ -177,7 +200,12 @@ class ResidentialModel(Model):
                 "minimum_consumption_mu": 0,
                 "minimum_consumption_sig": 0.1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0}
+                "monthly_consumption_error": 0.0,
+                "theta_1_mu": 0,
+                "theta_1_sig": 0,
+                "theta_2_mu": 0,
+                "theta_2_sig": 0
+                }
 
 
 #Very similar to how we specified the Residential Model below,
@@ -283,7 +311,11 @@ class ResidentialModelLinearRegression(Model):
                 "minimum_consumption_mu": 0,
                 "minimum_consumption_sig": 0.1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0}
+                "monthly_consumption_error": 0.0,
+                "theta_1_mu": 0,
+                "theta_1_sig": 0,
+                "theta_2_mu": 0,
+                "theta_2_sig": 0}
 
 
 
@@ -402,7 +434,9 @@ def load_residential_data(state,
     log_handler.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
 
     if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
-
+        #TODO: Need to modify the weather data provided.
+        #TODO: Instead of using PrescientWeather Historical,
+        #TODO: we can use PrescientWeather Forecast.
         population_weighted_weather = PrescientWeather([state])
         consumption_factor = calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather,
                                                                                   start_training_time,
@@ -469,6 +503,10 @@ def fit_residential_model(start_training_time: str,
     params["minimum_consumption_mu"] = 0.0
     params["minimum_consumption_sig"] = 0.0
     params["daily_consumption_error"] = 0.0
+    params["theta_1_mu"] = 0.0
+    params["theta_1_sig"] = 0.0
+    params["theta_2_mu"] = 0.0
+    params["theta_2_sig"] = 0.0
 
     if method == "GLOBAL":
         best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters,

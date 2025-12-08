@@ -292,6 +292,8 @@ def load_commercial_data(state,
     :return:
     """
 
+
+
     file_handler = app_params.get("file_handler")
     log_handler = app_params.get("log_handler")
 
@@ -302,6 +304,10 @@ def load_commercial_data(state,
     file_handler.flush()
 
     if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
+
+        # TODO: Need to modify the weather data provided.
+        # TODO: Instead of using PrescientWeather Historical,
+        # TODO: we can use PrescientWeather Forecast.
 
         population_weighted_weather = PrescientWeather([state])
         consumption_factor = calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather,
