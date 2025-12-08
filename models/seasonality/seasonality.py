@@ -10,8 +10,12 @@ import pandas as pd
 import datetime
 
 def get_day_of_year(date_str: str):
-
-    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    if isinstance(date_str, str):
+        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    elif isinstance(date_str, datetime.datetime):
+        date_obj = date_str
+    else:
+        date_obj = date_str
     day_of_year = date_obj.timetuple().tm_yday
     return day_of_year
 
