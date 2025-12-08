@@ -139,14 +139,14 @@ class ResidentialModel(Model):
             theta_2 = pm.Normal("theta_2", mu=float(params.get("theta_2_mu")), sigma=float(params.get("theta_2_sig")))
 
             time_1 = pm.Normal("time_dependent_factor_1",
-                                                  mu=0,
-                                                  sigma=0,
+                                                  mu=0.1,
+                                                  sigma=0.1,
                                                   observed=get_time_series_1(dates),
                                                   dims="dates")
 
             time_2 = pm.Normal("time_dependent_factor_2",
-                               mu=0,
-                               sigma=0,
+                               mu=0.1,
+                               sigma=0.1,
                                observed=get_time_series_2(dates),
                                dims="dates")
 
