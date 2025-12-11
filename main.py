@@ -49,6 +49,7 @@ def residential_training_func(state):
                           state,
                           method=method,
                           consumption_factor_method=consumption_factor_method,
+                          differencing=True,
                           app_params=d)
 
 def commercial_training_func(state):

@@ -59,13 +59,15 @@ from data.population import PopulationData
 from data.weather import PyWeatherData, Weather
 import datetime
 import pandas as pd
+from models.seasonality.seasonality import calculate_climatology, calculate_differences_for_df
 
 
 def calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather: Weather,
                                                          start_datetime: datetime.datetime,
                                                          end_datetime: datetime.datetime,
                                                          location: str,
-                                                         degree_day_type: str = "HDD") -> pd.Series:
+                                                         degree_day_type: str = "HDD",
+                                                         differencing: bool = True) -> pd.Series:
     """
     Calculates the consumption factor for Prescient Weather.
     """
@@ -79,12 +81,18 @@ def calculate_consumption_factor_via_pop_weighted_weather(population_weighted_we
                                                  start_datetime,
                                                  end_datetime)
 
-    min_value = df[degree_day_type].min()
-    max_value = df[degree_day_type].max()
-    df["Consumption_Factor_Normalizied"] = df[degree_day_type].apply(lambda x: (x - min_value) / (max_value - min_value))
-    date_range = pd.date_range(start=start_datetime, end=end_datetime, freq="D")
-    result = pd.DataFrame(date_range, columns=["Date"])
-    result["Consumption_Factor_Normalizied"] = df["Consumption_Factor_Normalizied"]
+    if differencing:
+        dd_diff_df = calculate_differences_for_df(df, degree_day_type)
+        dd_diff_df["Consumption_Factor_Normalizied"] = dd_diff_df["dd_diff"]
+        result = dd_diff_df
+    else:
+        min_value = df[degree_day_type].min()
+        max_value = df[degree_day_type].max()
+        df["Consumption_Factor_Normalizied"] = df[degree_day_type].apply(lambda x: (x - min_value) / (max_value - min_value))
+        date_range = pd.date_range(start=start_datetime, end=end_datetime, freq="D")
+        result = pd.DataFrame(date_range, columns=["Date"])
+        result["Consumption_Factor_Normalizied"] = df["Consumption_Factor_Normalizied"]
+
     return result
 
 

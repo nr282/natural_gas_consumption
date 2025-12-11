@@ -106,8 +106,6 @@ class ResidentialModel(Model):
         
         with pm.Model(coords=coords) as model:
 
-            #TODO: the question is where below does the model need to be modified to handle the forecast.
-
             consumption_factor = pm.Normal("consumption_factor",
                                            mu=mean_consumption_factor,
                                            sigma=variance_consumption_factor,
@@ -129,34 +127,9 @@ class ResidentialModel(Model):
 
             alpha_2 = pm.Normal("alpha_2", mu=float(params.get("alpha_2_mu")), sigma=float(params.get("alpha_2_sigma")))
 
-            #Theta is sensitivity to time
-
-            #Theta 1 is the coefficient on a cosine wave of period 12 months
-            theta_1 = pm.Normal("theta_1", mu=float(params.get("theta_1_mu")), sigma=float(params.get("theta_1_sig")))
-
-
-            #Theta 2 is the coefficient on a cosine wave of period 6 months
-            theta_2 = pm.Normal("theta_2", mu=float(params.get("theta_2_mu")), sigma=float(params.get("theta_2_sig")))
-
-            time_1 = pm.Normal("time_dependent_factor_1",
-                                                  mu=0.1,
-                                                  sigma=0.1,
-                                                  observed=get_time_series_1(dates),
-                                                  dims="dates")
-
-            time_2 = pm.Normal("time_dependent_factor_2",
-                               mu=0.1,
-                               sigma=0.1,
-                               observed=get_time_series_2(dates),
-                               dims="dates")
-
-            minimum_consumption = pm.Normal("minimum_consumption",
-                                            mu=params.get("minimum_consumption_mu"),
-                                            sigma=params.get("minimum_consumption_sig"))
-
 
             eia_daily_observations = pm.Normal("eia_observations",
-                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged + minimum_consumption + theta_1 * time_1 + theta_2 * time_2,
+                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged,
                                                sigma=params.get("daily_consumption_error"),
                                                dims="dates")
 
@@ -187,8 +160,6 @@ class ResidentialModel(Model):
             2. alpha_sigma
             3. alpha_2_mu
             4. alpha_2_sigma
-            5. minimum_consumption_mu
-            6. minimum_consumption_sig
             7. daily_consumption_error
 
         """
@@ -197,14 +168,8 @@ class ResidentialModel(Model):
                 "alpha_sigma": 10,
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
-                "minimum_consumption_mu": 0,
-                "minimum_consumption_sig": 0.1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0,
-                "theta_1_mu": 0,
-                "theta_1_sig": 0,
-                "theta_2_mu": 0,
-                "theta_2_sig": 0
+                "monthly_consumption_error": 0.0
                 }
 
 
@@ -298,9 +263,7 @@ class ResidentialModelLinearRegression(Model):
             2. alpha_sigma
             3. alpha_2_mu
             4. alpha_2_sigma
-            5. minimum_consumption_mu
-            6. minimum_consumption_sig
-            7. daily_consumption_error
+            5. daily_consumption_error
 
         """
 
@@ -308,14 +271,8 @@ class ResidentialModelLinearRegression(Model):
                 "alpha_sigma": 10,
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
-                "minimum_consumption_mu": 0,
-                "minimum_consumption_sig": 0.1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0,
-                "theta_1_mu": 0,
-                "theta_1_sig": 0,
-                "theta_2_mu": 0,
-                "theta_2_sig": 0}
+                "monthly_consumption_error": 0.0}
 
 
 
@@ -412,13 +369,40 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
     return residential_df
 
 
+def calculate_eia_data(eia_data: pd.DataFrame, state):
+    """
+    Calculates the EIA data.
+
+
+    :param eia_data:
+    :return:
+    """
+
+
+    eia_data = eia_data.reset_index()
+    eia_data.index = eia_data["period"]
+    period = eia_data["period"].apply(lambda x: x + "-01")
+    eia_data[state] = eia_data[state].astype(float)
+    eia_data["Date"] = pd.to_datetime(period)
+    eia_data["Month"] = eia_data["Date"].dt.month
+    eia_data["Year"] = eia_data["Date"].dt.year
+    eia_data["Day"] = eia_data["Date"].dt.day
+    month_to_eia_average = eia_data[["Month", state]].groupby(["Month"])[state].mean().to_dict()
+    eia_data["month_average"] = eia_data["Month"].apply(lambda x: month_to_eia_average[x])
+    eia_data["month_diff"] = eia_data[state] - eia_data["month_average"]
+    return eia_data
+
+
 def load_residential_data(state,
                           start_training_time,
                           end_training_time,
                           consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          differencing=False,
                           app_params=None):
     """
     Loads residential related data primarily from EIA into a dictionary.
+
+    The function also does preprocessing of the residential data.
 
 
     :return:
@@ -434,14 +418,16 @@ def load_residential_data(state,
     log_handler.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
 
     if consumption_factor_method == "POPULATION_WEIGHTED_HDD":
-        #TODO: Need to modify the weather data provided.
-        #TODO: Instead of using PrescientWeather Historical,
-        #TODO: we can use PrescientWeather Forecast.
         population_weighted_weather = PrescientWeather([state])
         consumption_factor = calculate_consumption_factor_via_pop_weighted_weather(population_weighted_weather,
                                                                                   start_training_time,
                                                                                   end_training_time,
-                                                                                   state)
+                                                                                  state,
+                                                                                  differencing=differencing)
+
+        eia_data = calculate_eia_data(eia_data, state)
+        if differencing:
+            eia_data[state] = eia_data["month_diff"]
 
     elif consumption_factor_method == "CUSTOM_WITH_PYWEATHER":
 
@@ -451,11 +437,14 @@ def load_residential_data(state,
                                                           weather_service,
                                                           start_training_time,
                                                           end_training_time)
+    else:
+        consumption_factor = None
+        eia_data = None
 
     data = dict()
     data["eia_monthly_values"] = eia_data
-    data["consumption_factor_values"] = consumption_factor
     data["full_eia_data"] = eia_data
+    data["consumption_factor_values"] = consumption_factor
     data["state"] = state
 
 
@@ -469,6 +458,7 @@ def fit_residential_model(start_training_time: str,
                           state: str,
                           method="GLOBAL",
                           consumption_factor_method="POPULATION_WEIGHTED_HDD",
+                          differencing=False,
                           app_params=None):
     """
     Fits the residential model.
@@ -488,7 +478,8 @@ def fit_residential_model(start_training_time: str,
                                                                start_training_time,
                                                                end_training_time,
                                                                consumption_factor_method=consumption_factor_method,
-                                                               app_params=app_params)
+                                                               app_params=app_params,
+                                                               differencing=differencing)
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,
@@ -500,13 +491,7 @@ def fit_residential_model(start_training_time: str,
     params["alpha_mu"] = 0.0
     params["alpha_2_mu"] = 0.0
     params["alpha_sigma"] = 0.0
-    params["minimum_consumption_mu"] = 0.0
-    params["minimum_consumption_sig"] = 0.0
     params["daily_consumption_error"] = 0.0
-    params["theta_1_mu"] = 0.0
-    params["theta_1_sig"] = 0.0
-    params["theta_2_mu"] = 0.0
-    params["theta_2_sig"] = 0.0
 
     if method == "GLOBAL":
         best_parameters, optimal_rel_error = ResidentialModel(calibrated_parameters,

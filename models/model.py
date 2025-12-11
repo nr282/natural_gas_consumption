@@ -107,6 +107,7 @@ class Model(ABC):
         for param_name in param_names:
 
             upper_bound = UPPER_MULTIPLICATIVE_BOUND * param_to_value.get(param_name)
+
             if upper_bound <= 0:
                 raise ValueError(f"Upper bound cannot be less than 0. The offending parameter name is: {param_name} and the value is: {upper_bound}")
 

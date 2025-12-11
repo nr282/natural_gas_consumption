@@ -40,6 +40,39 @@ def get_time_series_2(dates):
     time_val = np.array(time_vals)
     return time_vals
 
+def calculate_climatology(df: pd.DataFrame, degree_day_type: str) -> dict:
+    """
+    Calculate the climatology for a given degree day type.
+
+    The goal is to have the average for a set of dates:
+        December 1,
+        January 1,
+        April 15,
+        July 5
+        etc
+
+    There is an approximation for day 366 for the leap year.
+
+    """
+
+    df["day_of_year"] = df["Date"].apply(lambda x: get_day_of_year(x))
+    day_of_year_to_value = df[["HDD", "day_of_year"]].groupby("day_of_year")["HDD"].mean()
+    avg_dd = day_of_year_to_value.to_dict()
+    avg_dd[366] = avg_dd[365]
+    return avg_dd
+
+
+def calculate_differences_for_df(df: pd.DataFrame, degree_day_type: str):
+
+    avg_dd = calculate_climatology(df, degree_day_type)
+    df["day_of_year"] = df["Date"].apply(lambda x: get_day_of_year(x))
+    df["avg_dd"] = df["day_of_year"].apply(lambda x: avg_dd[x])
+    df["dd_diff"] = df["HDD"] - df["avg_dd"]
+    return df
+
+
+
+
 def example():
     from datetime import datetime
 
@@ -50,6 +83,8 @@ def example():
 
     # Get the day of the year
     print(f"The day of the year for {date_obj.strftime('%Y-%m-%d')} is: {day_of_year}")
+
+
 
 
 if __name__ == "__main__":

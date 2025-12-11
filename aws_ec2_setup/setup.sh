@@ -3,6 +3,6 @@
 echo "Beginning AWS EC2 setup"
 sudo yum install git
 sudo yum install python-pip
-
+sudo yum install tmux
 
 
