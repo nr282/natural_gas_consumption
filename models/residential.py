@@ -127,9 +127,33 @@ class ResidentialModel(Model):
 
             alpha_2 = pm.Normal("alpha_2", mu=float(params.get("alpha_2_mu")), sigma=float(params.get("alpha_2_sigma")))
 
+            # Theta is sensitivity to time
+
+            # Theta 1 is the coefficient on a cosine wave of period 12 months
+            theta_1 = pm.Normal("theta_1", mu=float(params.get("theta_1_mu")), sigma=float(params.get("theta_1_sig")))
+
+            # Theta 2 is the coefficient on a cosine wave of period 6 months
+            theta_2 = pm.Normal("theta_2", mu=float(params.get("theta_2_mu")), sigma=float(params.get("theta_2_sig")))
+
+            time_1 = pm.Normal("time_dependent_factor_1",
+                               mu=0.1,
+                               sigma=0.1,
+                               observed=get_time_series_1(dates),
+                               dims="dates")
+
+            time_2 = pm.Normal("time_dependent_factor_2",
+                               mu=0.1,
+                               sigma=0.1,
+                               observed=get_time_series_2(dates),
+                               dims="dates")
+
+            minimum_consumption = pm.Normal("minimum_consumption",
+                                            mu=params.get("minimum_consumption_mu"),
+                                            sigma=params.get("minimum_consumption_sig"))
+
 
             eia_daily_observations = pm.Normal("eia_observations",
-                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged,
+                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged + minimum_consumption + theta_1 * time_1 + theta_2 * time_2,
                                                sigma=params.get("daily_consumption_error"),
                                                dims="dates")
 
@@ -169,7 +193,13 @@ class ResidentialModel(Model):
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0
+                "monthly_consumption_error": 0.0,
+                "minimum_consumption_mu": 0,
+                "minimum_consumption_sig": 10,
+                "theta_1_mu": 0,
+                "theta_1_sig": 10,
+                "theta_2_mu": 0,
+                "theta_2_sig": 10
                 }
 
 
@@ -272,7 +302,14 @@ class ResidentialModelLinearRegression(Model):
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0}
+                "monthly_consumption_error": 0.0,
+                "minimum_consumption_mu": 0,
+                "minimum_consumption_sig": 10,
+                "theta_1_mu": 0,
+                "theta_1_sig": 10,
+                "theta_2_mu": 0,
+                "theta_2_sig": 10
+                }
 
 
 

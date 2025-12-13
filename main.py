@@ -6,6 +6,25 @@ The main module will primarily be run out of main function.
     - Then it will place the dependencies in the major loop of the application.
     - It is likely the case that we will need to also institute the config file also.
 
+
+Timeline:
+    1. Get Residential working for Virginia. TODO: IN PROGRESS
+    2. Train with Virginia Residential data, look at uplift.
+    3. Train with more data over a larger period of time.
+    4. After training for a week, look at the accuracy.
+    5. Train with New York Commercial
+    6. Train with California Electric Power Consumption
+    7. Document Results
+    8. Scaling to all states might be costly. Training might cost 3k.
+    9. After building confidence that this material is good, look to scale to all states.
+    9. There is confidence that our machine learning technique is better than other weather-eia correlation
+    techniques, because of previous training examples.
+    10. The statistical model is over parameterizied. A more parameterizied model includes more basic models.
+        - To expand this suppose that there are a set of models X, expressed in the code, and there is a set of
+        models Y expressed in the code. The set of models Y is a subset of set of models X. More training will be
+        required to find a good model X, but it can find the model Y if model Y is good.
+    11.
+
 """
 
 import pandas as pd

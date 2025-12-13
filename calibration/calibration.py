@@ -12,15 +12,7 @@ The goal with the below functions is to fit some parameters. The parameters that
 import pandas as pd
 from data.eia_consumption import eia_consumption
 
-
-def fit_minimum_consumption(eia_data: pd.DataFrame, state: str):
-    """
-    The major goal is to calculate the minimum consumption factor.
-
-    :return:
-    """
-
-    return 1.5 * eia_data[state].astype(float).min() / 30
+#TODO: Need to review the picks made here.
 
 def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
     """
@@ -30,6 +22,29 @@ def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
     """
 
     return eia_data[state].astype(float).mean() / 30
+
+def fit_minimum_consumption(eia_data: pd.DataFrame, state: str):
+    """
+    The major goal is to calculate the minimum consumption factor.
+
+    :return:
+    """
+    return (eia_data[state].astype(float).abs().mean()) / 30
+
+def fit_minimum_consumption_sig(eia_data, state):
+    return 0.2 * fit_minimum_consumption(eia_data, state)
+
+def fit_theta_1_mu_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * eia_data[state].astype(float).abs().mean() / 30
+
+def fit_theta_1_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * 0.1 * eia_data[state].astype(float).abs().mean() / 30
+
+def fit_theta_2_mu_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * eia_data[state].astype(float).abs().mean() / 30
+
+def fit_theta_2_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state: str):
+    return 0.1 * 0.1 * eia_data[state].astype(float).abs().mean() / 30
 
 
 def fit_monthly_consumption_error(eia_data: pd.DataFrame, state: str):
@@ -49,13 +64,26 @@ def calibration(consumption_factor,
     minimum_consumption = fit_minimum_consumption(eia_data, state)
     daily_consumption_error = fit_daily_consumption_error(eia_data, state)
     monthly_consumption_error = fit_monthly_consumption_error(eia_data, state)
+    minimum_consumption_mu = fit_minimum_consumption(eia_data, state)
+    minimum_consumption_sig = fit_minimum_consumption_sig(eia_data, state)
+    theta_1_mu_parameter = fit_theta_1_mu_parameter(consumption_factor, eia_data, state)
+    theta_2_mu_parameter = fit_theta_2_sig_parameter(consumption_factor, eia_data, state)
+    theta_1_sig_parameter = fit_theta_1_sig_parameter(consumption_factor, eia_data, state)
+    theta_2_sig_parameter = fit_theta_2_sig_parameter(consumption_factor, eia_data, state)
 
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
             "alpha_2_mu": 0.1 * sensitivity_parameter,
             "alpha_sigma": 0.01 * sensitivity_parameter,
             "daily_consumption_error": daily_consumption_error,
-            "monthly_consumption_error": monthly_consumption_error}
+            "monthly_consumption_error": monthly_consumption_error,
+            "minimum_consumption_mu": minimum_consumption_mu,
+            "minimum_consumption_sig": minimum_consumption_sig,
+            "theta_1_mu": theta_1_mu_parameter,
+            "theta_1_sig": theta_1_sig_parameter,
+            "theta_2_mu": theta_2_mu_parameter,
+            "theta_2_sig": theta_2_sig_parameter
+            }
 
 def fit_slope(eia_monthly_time_series, state: str):
     """
