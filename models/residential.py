@@ -3,8 +3,6 @@ Provides residential model that can be fitted and inferred.
 
 TODO: Added global optimization.
 TODO: Global optimization is critical.
-
-
 """
 
 import datetime
@@ -342,6 +340,9 @@ def calculate_eia_monthly_consumption_constraints(model,
     Calculate eia monthly consumption constraints.
     """
 
+    import pdb
+    pdb.set_trace()
+
     logger = app_params["log_handler"]
     file_handler = app_params["file_handler"]
 
@@ -363,7 +364,12 @@ def calculate_eia_monthly_consumption_constraints(model,
         if is_data_between_dates(eia_monthly_start_date, eia_monthly_end_date, start_month_dt):
 
             logger.info(f"Applying Constraint for {start_date_str} with index {index}")
+
             monthly_value = float(row[state])
+
+            if (monthly_value is float("nan")) or monthly_value is float("inf"):
+                continue
+
             day_of_week, end_of_month_day_number = calendar.monthrange(year, month)
             end_of_month_datetime = datetime.datetime(year, month, end_of_month_day_number)
             indicies = []
