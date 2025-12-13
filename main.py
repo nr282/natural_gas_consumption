@@ -52,10 +52,10 @@ def read_configuration():
 
 def residential_training_func(state):
     file_handler, log_handler = init_logs(state, "residential")
-    start_training_time = "2021-01-01"
+    start_training_time = "2020-01-01"
     end_training_time = "2023-12-31"
     start_test_time = "2024-01-01"
-    end_test_time = "2024-12-31"
+    end_test_time = "2025-08-31"
     method = "GLOBAL"
     consumption_factor_method = "POPULATION_WEIGHTED_HDD"
     d = dict()
