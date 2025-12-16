@@ -52,7 +52,7 @@ class Model(ABC):
         eia_data = data["full_eia_data"]
         merged_df = eia_data.merge(estimated_monthly_data, on="Date")
         merged_df["error"] = (merged_df[state].astype(np.float64) - merged_df["eia_observations"]).abs()
-        merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64)
+        merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64).abs()
         logging.info(f"Monthly Estimate Comparison {merged_df}")
         return float(merged_df["relative_error_non_percent"].mean())
 
