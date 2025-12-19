@@ -26,6 +26,9 @@ import requests
 import logging
 import io
 import json
+
+from dateutil.relativedelta import relativedelta
+
 from data.eia_consumption.eia_api import read_eia_path
 from data.eia_consumption.eia_geography_mappings import (convert_native_name_to_standard_state_name,
                                                          get_fifty_us_states_and_dc,
@@ -164,6 +167,19 @@ def test_read_api_path():
 def get_path_to_raw_eia():
     return "raw_eia_consumption_data.csv"
 
+
+def get_next_month_first_day(current_day: str):
+
+    datetime_object = datetime.strptime(current_day, '%Y-%m-%d')
+    next_month_day = datetime_object + relativedelta(months=1)
+    year = next_month_day.year
+    month = next_month_day.month
+    day = next_month_day.day
+    next_month_first_day = datetime(year, month, 1)
+    next_month_first_day_string = next_month_first_day.strftime("%Y-%m-%d")
+    return next_month_first_day_string
+
+
 def get_eia_consumption_data_df(start_date = "2024-01-01",
                                 end_date = "2024-10-01",
                                 create_new_data=False):
@@ -182,9 +198,9 @@ def get_eia_consumption_data_df(start_date = "2024-01-01",
     if os.path.exists(get_path_to_raw_eia()) and not create_new_data:
         return pd.read_csv(get_path_to_raw_eia())
 
-    interval_range = pd.interval_range(start = datetime.strptime(start_date, "%Y-%m-%d"),
-                                       end = datetime.strptime(end_date, "%Y-%m-%d"),
-                                       freq = "MS",
+    interval_range = pd.interval_range(start=datetime.strptime(start_date, "%Y-%m-%d"),
+                                       end=datetime.strptime(get_next_month_first_day(end_date), "%Y-%m-%d"),
+                                       freq="MS",
                                        closed='left')
 
     dfs = []
@@ -195,8 +211,6 @@ def get_eia_consumption_data_df(start_date = "2024-01-01",
 
         api_call_successful, result = read_eia_consumption_data(start_date_str,
                                                                 end_date_str)
-
-
 
         urlData = result.content
         urlDataDecoded = urlData.decode('utf-8')
@@ -214,7 +228,7 @@ def get_eia_consumption_data_df(start_date = "2024-01-01",
         if not "period" in eia_consumption_df:
             raise RuntimeError(f"Period not found in the eia_consumption_df for the interval {interval}")
 
-        assert(eia_consumption_df["period"].nunique() == 1)
+        assert (eia_consumption_df["period"].nunique() == 1)
         dfs.append(eia_consumption_df)
 
     eia_consumption_df = pd.concat(dfs)

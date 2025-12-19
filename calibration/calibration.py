@@ -11,6 +11,10 @@ The goal with the below functions is to fit some parameters. The parameters that
 """
 import pandas as pd
 from data.eia_consumption import eia_consumption
+import logging
+from scipy import stats
+
+
 
 #TODO: Need to review the picks made here.
 
@@ -64,25 +68,14 @@ def calibration(consumption_factor,
     minimum_consumption = fit_minimum_consumption(eia_data, state)
     daily_consumption_error = fit_daily_consumption_error(eia_data, state)
     monthly_consumption_error = fit_monthly_consumption_error(eia_data, state)
-    minimum_consumption_mu = fit_minimum_consumption(eia_data, state)
-    minimum_consumption_sig = fit_minimum_consumption_sig(eia_data, state)
-    theta_1_mu_parameter = fit_theta_1_mu_parameter(consumption_factor, eia_data, state)
-    theta_2_mu_parameter = fit_theta_2_sig_parameter(consumption_factor, eia_data, state)
-    theta_1_sig_parameter = fit_theta_1_sig_parameter(consumption_factor, eia_data, state)
-    theta_2_sig_parameter = fit_theta_2_sig_parameter(consumption_factor, eia_data, state)
+
 
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
-            "alpha_2_mu": 0.1 * sensitivity_parameter,
+            "alpha_2_mu": sensitivity_parameter,
             "alpha_sigma": 0.01 * sensitivity_parameter,
             "daily_consumption_error": daily_consumption_error,
-            "monthly_consumption_error": monthly_consumption_error,
-            "minimum_consumption_mu": minimum_consumption_mu,
-            "minimum_consumption_sig": minimum_consumption_sig,
-            "theta_1_mu": theta_1_mu_parameter,
-            "theta_1_sig": theta_1_sig_parameter,
-            "theta_2_mu": theta_2_mu_parameter,
-            "theta_2_sig": theta_2_sig_parameter
+            "monthly_consumption_error": monthly_consumption_error
             }
 
 def fit_slope(eia_monthly_time_series, state: str):
@@ -155,12 +148,36 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
 
     consumption_factor_min = consumption_ts["Consumption_Factor_Normalizied"].min()
     consumption_factor_max = consumption_ts["Consumption_Factor_Normalizied"].max()
+
+    consumption_ts["Year"] = consumption_ts["Date"].dt.year
+    consumption_ts["Month"] = consumption_ts["Date"].dt.month
+    consumption_ts["Day"] = consumption_ts["Date"].dt.day
+
     eia_data_min = int(eia_data[state].astype(float).min()) / 30
     eia_data_max = int(eia_data[state].astype(float).max()) / 30
 
-    estimated_sensitivity = (eia_data_max - eia_data_min) / (consumption_factor_max - consumption_factor_min)
+    logging.info(f"Calibration Datasets are consumption factor:"
+                 f" {consumption_ts} and "
+                 f"eia data: {eia_data} "
+                 f"for the state {state}")
 
-    return estimated_sensitivity
+    eia_data_by_month = eia_data.groupby(["Year", "Month"])["month_diff"].mean().reset_index()
+
+    consumption_ts_by_month = consumption_ts.groupby(["Year", "Month"])["Consumption_Factor_Normalizied"].mean().reset_index()
+
+    merged_data = eia_data_by_month.merge(consumption_ts_by_month,
+                                          on=["Year", "Month"],
+                                          how="outer",
+                                          validate='one_to_one')
+
+
+    correlation = merged_data["month_diff"].corr(merged_data["Consumption_Factor_Normalizied"], method="pearson")
+
+    logging.info(f"Correlation between consumption factor and EIA data is {correlation}. A correlation near 1 is good")
+
+    res = stats.linregress(merged_data["month_diff"], merged_data["Consumption_Factor_Normalizied"])
+
+    return res.slope
 
 
 

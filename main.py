@@ -7,6 +7,18 @@ The main module will primarily be run out of main function.
     - It is likely the case that we will need to also institute the config file also.
 
 
+Other results and research:
+1. The goal of the program is to run many states all at once. There are 50 states and there are
+three components: (1) Residential, (2) Commercial and (3) Electric Power. There are 150 trainings
+that need to occur in the multiprocessing framework. As such, with one training being associated to
+one process, we will need to have 150 processes. If an EC2 instance only has one vCPU, then we will have
+lots of context switching. As such, the selected EC2 instance must have a high number of vCPUs ideally
+which are compute optimized. A good EC2 instance is: (1) c8g.24xlarge, (2) c8g.48xlarge.
+
+These will have about one Virtual Processor for each process, and this will provide us with successful training.
+
+TODO: there are concerns with respect to missing data.
+
 Timeline:
     1. Get Residential working for Virginia. TODO: IN PROGRESS
     2. Train with Virginia Residential data, look at uplift.
@@ -79,7 +91,7 @@ def commercial_training_func(state):
     d["log_handler"] = log_handler
     start_training_time = "2021-01-01"
     end_training_time = "2023-12-31"
-    start_test_time = "2024-01-01"
+    start_test_time = "2024-12-01"
     end_test_time = "2024-12-31"
     method = "GLOBAL"
     consumption_factor_method = "POPULATION_WEIGHTED_HDD"

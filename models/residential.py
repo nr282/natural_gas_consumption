@@ -3,6 +3,10 @@ Provides residential model that can be fitted and inferred.
 
 TODO: Added global optimization.
 TODO: Global optimization is critical.
+
+TODO: What do I need to accomplish:
+    TODO: 1. Remove all parameters except
+
 """
 
 import datetime
@@ -125,33 +129,9 @@ class ResidentialModel(Model):
 
             alpha_2 = pm.Normal("alpha_2", mu=float(params.get("alpha_2_mu")), sigma=float(params.get("alpha_2_sigma")))
 
-            # Theta is sensitivity to time
-
-            # Theta 1 is the coefficient on a cosine wave of period 12 months
-            theta_1 = pm.Normal("theta_1", mu=float(params.get("theta_1_mu")), sigma=float(params.get("theta_1_sig")))
-
-            # Theta 2 is the coefficient on a cosine wave of period 6 months
-            theta_2 = pm.Normal("theta_2", mu=float(params.get("theta_2_mu")), sigma=float(params.get("theta_2_sig")))
-
-            time_1 = pm.Normal("time_dependent_factor_1",
-                               mu=0.1,
-                               sigma=0.1,
-                               observed=get_time_series_1(dates),
-                               dims="dates")
-
-            time_2 = pm.Normal("time_dependent_factor_2",
-                               mu=0.1,
-                               sigma=0.1,
-                               observed=get_time_series_2(dates),
-                               dims="dates")
-
-            minimum_consumption = pm.Normal("minimum_consumption",
-                                            mu=params.get("minimum_consumption_mu"),
-                                            sigma=params.get("minimum_consumption_sig"))
-
 
             eia_daily_observations = pm.Normal("eia_observations",
-                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged + minimum_consumption + theta_1 * time_1 + theta_2 * time_2,
+                                               mu=(alpha + alpha_2) * consumption_factor + alpha_2 * consumption_factor_lagged,
                                                sigma=params.get("daily_consumption_error"),
                                                dims="dates")
 
@@ -191,13 +171,7 @@ class ResidentialModel(Model):
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0,
-                "minimum_consumption_mu": 0,
-                "minimum_consumption_sig": 10,
-                "theta_1_mu": 0,
-                "theta_1_sig": 10,
-                "theta_2_mu": 0,
-                "theta_2_sig": 10
+                "monthly_consumption_error": 0.0
                 }
 
 
@@ -300,13 +274,7 @@ class ResidentialModelLinearRegression(Model):
                 "alpha_2_mu": 0,
                 "alpha_2_sigma": 1,
                 "daily_consumption_error": 0,
-                "monthly_consumption_error": 0.0,
-                "minimum_consumption_mu": 0,
-                "minimum_consumption_sig": 10,
-                "theta_1_mu": 0,
-                "theta_1_sig": 10,
-                "theta_2_mu": 0,
-                "theta_2_sig": 10
+                "monthly_consumption_error": 0.0
                 }
 
 
@@ -339,9 +307,6 @@ def calculate_eia_monthly_consumption_constraints(model,
     """
     Calculate eia monthly consumption constraints.
     """
-
-    import pdb
-    pdb.set_trace()
 
     logger = app_params["log_handler"]
     file_handler = app_params["file_handler"]
@@ -409,6 +374,7 @@ def get_eia_residential_data(start_date: datetime.date, end_date: datetime.date)
                                                               end_date=end_date,
                                                               canonical_component_name="Residential")
 
+
     return residential_df
 
 
@@ -454,9 +420,9 @@ def load_residential_data(state,
     file_handler = app_params["file_handler"]
     log_handler = app_params["log_handler"]
 
-
     log_handler.info("Acquiring EIA Residential Data")
     eia_data = get_eia_residential_data(start_training_time, end_training_time)
+
     eia_data = eia_data[[state]]
     log_handler.info(f"Finished EIA Residential Data. Some EIA Data is provided as: {eia_data.head()}")
 
@@ -467,6 +433,7 @@ def load_residential_data(state,
                                                                                   end_training_time,
                                                                                   state,
                                                                                   differencing=differencing)
+
 
         eia_data = calculate_eia_data(eia_data, state)
         if differencing:
@@ -523,6 +490,7 @@ def fit_residential_model(start_training_time: str,
                                                                consumption_factor_method=consumption_factor_method,
                                                                app_params=app_params,
                                                                differencing=differencing)
+
 
     calibrated_parameters = calibration(consumption_factor,
                                         eia_data,

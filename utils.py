@@ -16,3 +16,6 @@ def get_base_path():
         raise ValueError("Could not find base path")
 
     return actual_path
+
+def write_file_to_directory(suffix_path: str):
+    pass

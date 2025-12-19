@@ -141,7 +141,7 @@ class Model(ABC):
             return relative_error
 
         bounds = self.calculate_bounds()
-
+            
         ret = dual_annealing(func, bounds=bounds)
         return self.convert_x_to_params(ret.x), ret.fun
 
