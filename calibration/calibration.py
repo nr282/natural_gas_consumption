@@ -163,7 +163,7 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
 
     eia_data_by_month = eia_data.groupby(["Year", "Month"])["month_diff"].mean().reset_index()
 
-    consumption_ts_by_month = consumption_ts.groupby(["Year", "Month"])["Consumption_Factor_Normalizied"].mean().reset_index()
+    consumption_ts_by_month = consumption_ts.groupby(["Year", "Month"])["Consumption_Factor_Normalizied"].sum().reset_index()
 
     merged_data = eia_data_by_month.merge(consumption_ts_by_month,
                                           on=["Year", "Month"],
