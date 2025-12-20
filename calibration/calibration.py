@@ -73,7 +73,8 @@ def calibration(consumption_factor,
     return {"slope": slope_parameter,
             "alpha_mu": sensitivity_parameter,
             "alpha_2_mu": sensitivity_parameter,
-            "alpha_sigma": 0.01 * sensitivity_parameter,
+            "alpha_sigma": 0.3 * sensitivity_parameter,
+            "alpha_2_sigma": 0.3 * sensitivity_parameter,
             "daily_consumption_error": daily_consumption_error,
             "monthly_consumption_error": monthly_consumption_error
             }
