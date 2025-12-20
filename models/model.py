@@ -105,8 +105,8 @@ class Model(ABC):
         bounds = []
         param_to_value = self.override_parameters()
         for param_name in param_names:
-            upper_bound = UPPER_MULTIPLICATIVE_BOUND * param_to_value.get(param_name)
-            bounds.append((min(-upper_bound, upper_bound), max(-upper_bound, upper_bound)))
+            #upper_bound = UPPER_MULTIPLICATIVE_BOUND * param_to_value.get(param_name)
+            bounds.append((0.8 * param_to_value.get(param_name), 1.2 * param_to_value.get(param_name)))
         return bounds
 
     def global_optimize(self,
@@ -141,7 +141,7 @@ class Model(ABC):
             return relative_error
 
         bounds = self.calculate_bounds()
-            
+
         ret = dual_annealing(func, bounds=bounds)
         return self.convert_x_to_params(ret.x), ret.fun
 
