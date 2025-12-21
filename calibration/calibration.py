@@ -174,6 +174,12 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
                                           how="outer",
                                           validate='one_to_one')
 
+    #TODO: Check the calibration datasets to see if the correlation holds.
+    #TODO: Check to see if a correlation truly exists.
+    #TODO: Question is if the correlation exists, then why cannot I not place this
+    #TODO: prediction in the correlation estimator. 
+    merged_data.to_csv(os.path.join(os.getcwd(), "calibration_datasets", "merged_data.csv"))
+
     correlation = merged_data["month_diff"].corr(merged_data["Consumption_Factor_Normalizied"], method="pearson")
 
     res = stats.linregress(merged_data["Consumption_Factor_Normalizied"], merged_data["month_diff"])
