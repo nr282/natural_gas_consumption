@@ -53,6 +53,10 @@ from typing import List
 from data.eia_consumption.eia_geography_mappings import us_state_to_abbrev
 from multiprocessing_methods.multiprocessing_framework import init_logs
 
+
+pd.set_option('display.max_columns', None)
+
+
 def read_configuration():
     """
     Reads the configuration that will be used later.

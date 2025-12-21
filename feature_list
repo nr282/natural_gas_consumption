@@ -1,40 +1,45 @@
 The feature list is provided below:
 
-    1. Add API integration with Prescient Weather
-        - I believe that this can be added directly with the s2 integration provided
-        - We should be able to get all new states added very easily.
-        - This should take maybe two to three hours.
-        - We need to get the multiprocessing working for all of the relevant states.
-    2. I think we should start making predictions as soon as January 1st.
-        - There will need to be a month of training or so for each state.
-        - We need to add (1) time series adjustments, which will include seasonality, ARMIA, monthly adjustment
-        on top of our monthly fits, (2) we should also look to fit slope, seasonality, monthly adjustment, to
-        the product.
-        - We need to configure AWS to handle multi-core, multi-processor calculation of the residential and commercial
-        models using only 1 AWS EC2 computing cluster.
-            - This can make this a wrapper around the Residential/Commercial element.
-        - We should likely get all of this code ready.
-        - We should also add the day of the week.
-        - We should also add potential auto regression.
-        - We should also look to optimize the natural gas prediction structure.
-    3. Clearly, the material built is better than the standard linear regression model, all things being equal.
-        - Namely, all of the data is the same in both prediction engines.
-        - The difference
-    4. We also need the forecast data.
-    5. We should look out scoping an integrated balance statistical model.
-        - We should make estimates and/or build a quick analysis.
-        - We can likely whip up a quick framework for this.
-    6. We should look to add pipeline data and pipeline framework into the calculations.
-    7. We may also want to start looking at the Baker Huges aspect in terms of the production level.
-    8. We should look to measure the accuracy of the forecasts provided, and take these elements into
-        calculation.
-    9. The development of a more comprehensive statistical model is critical, including storage and predictions for
-    (1) Industrial and other components are important.
-    10. Likely, mcmc can be parallelizied with MAP_REDUCE.
-    and delta patterns that are found in the (1) forecast and actual data, HDD and CDD data.
-    11. We should look to get the relevant infrastructure setup.
-        - The easy deployment of new infra and compute will be very useful for what we are
-        aiming to do.
-        - This will likely include setting up Map-Reduce, using the below:
-            1. https://docs.aws.amazon.com/emr/latest/ManagementGuide/how-emr-studio-works.html
-    12. We should look to diagram this information likely in a new codebase.
+    1. To finish the project, we need to accomplish the following:
+        a. See the results applied to Virginia Residential for the advanced statistical calculation.
+        b. See the results applied to Virginia Residential for the simple linear regression model.
+        c. See uplift of one model versus the other model.
+        d. Compare against the historical average based model.
+        e. Compare against what I was instructed to do at Brevan Howard.
+    2. Develop all of the code into rigorous code pathways.
+        a. Write tests against all of the relevant code.
+    3. Add this code to the relevant APIs.
+    4. Add the APIs to the gui code.
+        - We can get the GUI code written in parallel to the experimentation.
+        - The experimentation may end up taking a while
+    5. Create Documentation Describing the different methodologies.
+    6. Add forecast estimates also under the different models.
+    7. Add analysis of weather data into the models.
+        - Compare accuracy of the weather data.
+    8. Investigate the ensemble-like techniques.
+    9. We can take the approach of making the design modular, so that implementation can occur without
+    requiring all the pieces to first be aligned.
+    10. Really, all we need to do is develop, the relevant parameter format
+
+     Training  -----------> Develop Parameters -----------------> Inference--------------> Predictions.
+
+     Training to get a high accuracy may take some time to figure out.
+     But the rest of the pipeline can and should be implemented while we are experimenting to get the
+     Training correct in parallel.
+
+
+    Additional Questions:
+    -----------------------
+
+     How long do we think it will take us to get all of these components lined up.
+
+     I think it could take us 2 days to get a first pass setup for everything.
+
+     We should also look to get feedback from Tony on whether it is worth the time keeping around our competitors
+     estimates of Natural Gas Consumption.
+
+        - We can get this packaged and sent over to Tony.
+
+     I think that setting up the entire GUI should not take that long.
+
+     I think that nailing down the
