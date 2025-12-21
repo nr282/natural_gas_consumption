@@ -149,7 +149,7 @@ class ResidentialModel(Model):
                                                           app_params=app_params)
 
             try:
-                idata = pm.sample(draws=20, tune=20, cores=os.cpu_count())
+                idata = pm.sample(draws=50, tune=50, cores=os.cpu_count())
             except:
                 return None, None, None
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
