@@ -29,6 +29,7 @@ import pymc as pm
 from models.model import Model
 from typing import Tuple
 import calendar
+import os
 
 def map_date_to_index(consumption_factor: pd.DataFrame):
     """
@@ -146,8 +147,9 @@ class ResidentialModel(Model):
                                                           eia_monthly_end_date=eia_end_datetime,
                                                           sigma=params.get("monthly_consumption_error"),
                                                           app_params=app_params)
+
             try:
-                idata = pm.sample(draws=200, tune=200)
+                idata = pm.sample(draws=200, tune=200, cores=os.cpu_count())
             except:
                 return None, None, None
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
