@@ -69,9 +69,9 @@ def read_configuration():
 def residential_training_func(state):
     file_handler, log_handler = init_logs(state, "residential")
     start_training_time = "2020-01-01"
-    end_training_time = "2023-12-31"
-    start_test_time = "2024-01-01"
-    end_test_time = "2025-08-31"
+    end_training_time = "2025-08-01"
+    eia_start_time = "2020-01-01"
+    eia_end_time = "2024-12-31"
     method = "GLOBAL"
     consumption_factor_method = "POPULATION_WEIGHTED_HDD"
     d = dict()
@@ -79,8 +79,8 @@ def residential_training_func(state):
     d["log_handler"] = log_handler
     fit_residential_model(start_training_time,
                           end_training_time,
-                          start_test_time,
-                          end_test_time,
+                          eia_start_time,
+                          eia_end_time,
                           state,
                           method=method,
                           consumption_factor_method=consumption_factor_method,

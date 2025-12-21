@@ -73,7 +73,7 @@ def calibration(consumption_factor,
     return {"slope": slope_parameter,
             "alpha_mu": 1 * sensitivity_parameter,
             "alpha_2_mu": 0.001 * sensitivity_parameter,
-            "alpha_sigma": 0.05 * sensitivity_parameter,
+            "alpha_sigma": 0.2 * sensitivity_parameter,
             "alpha_2_sigma": 0.01 * sensitivity_parameter,
             "daily_consumption_error": daily_consumption_error,
             "monthly_consumption_error": monthly_consumption_error
@@ -177,7 +177,7 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
     #TODO: Check the calibration datasets to see if the correlation holds.
     #TODO: Check to see if a correlation truly exists.
     #TODO: Question is if the correlation exists, then why cannot I not place this
-    #TODO: prediction in the correlation estimator. 
+    #TODO: prediction in the correlation estimator.
     merged_data.to_csv(os.path.join(os.getcwd(), "calibration_datasets", "merged_data.csv"))
 
     correlation = merged_data["month_diff"].corr(merged_data["Consumption_Factor_Normalizied"], method="pearson")
