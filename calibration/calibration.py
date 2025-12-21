@@ -171,10 +171,9 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
                                           how="outer",
                                           validate='one_to_one')
 
-
     correlation = merged_data["month_diff"].corr(merged_data["Consumption_Factor_Normalizied"], method="pearson")
 
-    res = stats.linregress(merged_data["month_diff"], merged_data["Consumption_Factor_Normalizied"])
+    res = stats.linregress(merged_data["Consumption_Factor_Normalizied"], merged_data["month_diff"])
 
 
     logging.info(f"Correlation between consumption factor and EIA data is {correlation}. "
