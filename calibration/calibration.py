@@ -13,6 +13,7 @@ import pandas as pd
 from data.eia_consumption import eia_consumption
 import logging
 from scipy import stats
+import os
 
 
 
@@ -68,7 +69,6 @@ def calibration(consumption_factor,
     minimum_consumption = fit_minimum_consumption(eia_data, state)
     daily_consumption_error = fit_daily_consumption_error(eia_data, state)
     monthly_consumption_error = fit_monthly_consumption_error(eia_data, state)
-
 
     return {"slope": slope_parameter,
             "alpha_mu": 1 * sensitivity_parameter,
@@ -162,6 +162,9 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
                  f"eia data: {eia_data} "
                  f"for the state {state}")
 
+    consumption_ts.to_csv(os.path.join(os.getcwd(), "calibration_datasets", "consumption_ts.csv"))
+    eia_data.to_csv(os.path.join(os.getcwd(), "calibration_datasets", "eia_data.csv"))
+
     eia_data_by_month = eia_data.groupby(["Year", "Month"])["month_diff"].mean().reset_index()
 
     consumption_ts_by_month = consumption_ts.groupby(["Year", "Month"])["Consumption_Factor_Normalizied"].sum().reset_index()
@@ -178,7 +181,9 @@ def fit_sensitivity_parameter(consumption_ts, eia_data, state: str):
 
     logging.info(f"Correlation between consumption factor and EIA data is {correlation}. "
                  f"A correlation near 1 is good and the slope"
-                 f"that was calculated is {res.slope}.")
+                 f"that was calculated is {res.slope}, and the intercept {res.intercept}, and the"
+                 f"r-squared value is {res.rvalue**2}")
+
 
     return res.slope
 

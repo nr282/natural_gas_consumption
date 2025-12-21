@@ -106,7 +106,7 @@ class Model(ABC):
         param_to_value = self.override_parameters()
         for param_name in param_names:
             #upper_bound = UPPER_MULTIPLICATIVE_BOUND * param_to_value.get(param_name)
-            bounds.append((0.8 * param_to_value.get(param_name), 1.2 * param_to_value.get(param_name)))
+            bounds.append((0.95 * param_to_value.get(param_name), 1.05 * param_to_value.get(param_name)))
         return bounds
 
     def global_optimize(self,
