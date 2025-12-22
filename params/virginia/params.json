@@ -11,5 +11,9 @@
       },
   "model": "v1",
   "eia_timeframe": "2022",
+  "consumption_type": "Residential",
   "calibration_timeframe": "2023"
 }
+
+
+

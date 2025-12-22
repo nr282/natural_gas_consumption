@@ -59,6 +59,21 @@ As we think more about this, the prediction element will require two stages:
         the daily values yields the monthly average.
         - We can apply the alpha parameter on the deltas?
 
-    This is the correct method for doing this.
-    This requires only training of the delta parameters.
-    The delta parameters seem to have provided a good method for doing this.
+
+The steps are laid out below:
+    1. Calculate the (1) average weather implied eia daily averages.
+    2. Apply the inference engine based off weather's deviation from the average to calculate the daily EIA delta
+    for that month. This should line up with the calculated monthly value. I think. We already infer as the part of
+    3. the training process. Hence the core element may be:
+
+
+
+
+    1. First run with the trained parameters.
+    2. Extract the daily differences and porportion the EIA Average data out using Average Weather.
+    3. This will provide the EIA daily values.
+
+
+
+
+

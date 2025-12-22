@@ -1,0 +1,75 @@
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Alabama
+period                     
+2020-01                5673
+2020-02                5304
+2020-03                2635
+2020-04                1660
+2020-05                1219
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12

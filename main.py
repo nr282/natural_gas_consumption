@@ -68,7 +68,7 @@ def read_configuration():
 
 def residential_training_func(state):
     file_handler, log_handler = init_logs(state, "residential")
-    start_training_time = "2020-01-01"
+    start_training_time = "2023-01-01"
     end_training_time = "2024-12-31"
     eia_start_time = "2023-01-01"
     eia_end_time = "2023-12-31"
@@ -156,9 +156,8 @@ def run_inference():
 if __name__ == "__main__":
 
 
-    residential_training_func("Virginia")
+    #residential_training_func("Virginia")
 
-    """
     parser = argparse.ArgumentParser(description="Parses arguments")
     parser.add_argument("--training", action='store_true', help="States if we want to run training")
     parser.add_argument("--inference", action='store_true', help="States if we want to run inference")
@@ -182,5 +181,3 @@ if __name__ == "__main__":
             raise ValueError(f"Model type provided by: {args.model_type} is not supported.")
     elif args.inference:
         run_inference()
-
-    """
