@@ -13,6 +13,7 @@ from optimization import grid_search
 import numpy as np
 from scipy.optimize import dual_annealing
 import logging
+import time
 
 UPPER_MULTIPLICATIVE_BOUND = 2
 
@@ -137,6 +138,7 @@ class Model(ABC):
             log_handler = app_params["log_handler"]
             file_handler = app_params["file_handler"]
             log_handler.info(f"The relative error is {relative_error} for params {params}")
+            time.sleep(1)
             file_handler.flush()
             return relative_error
 

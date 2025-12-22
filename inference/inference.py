@@ -40,12 +40,30 @@ def load_parameters(state):
             final_params[key] = float(value)
     return final_params
 
-def inference_engine():
+def spectral_inference_engine(state,
+                              start_datetime,
+                              end_datetime
+                              ):
     """
-    Calculates eia_estimated_daily_observations and
-    the estimated monthly data. These can then be used in
-    comparison to out-of-sample 2024 data.
+    Calculates the daily EIA values using the statistical techniques for a
+    set of parameters. This will run Spectral's methodology.
+    This is the inference stage, so the results provided back should
+    not take a long time to run:
 
+        1. start_date: datetime.datetime
+        2. end_date: datetime.datetime
+        3. state: str
+        4. methodology: str
+
+    The inference engine should use the information that has been carefully calculated on
+    AWS in the more compute intensive stage.
+
+    It should also be able to take in modified parameters to allow for a play-ground type behavior.
+
+
+    TODO: Need to build this function out.
+    TODO: This function should handle all of these cases.
+    TODO: How 
 
     :return:
     """
@@ -53,17 +71,7 @@ def inference_engine():
     residential_model = ResidentialModel(calibrated_parameters=None,
                                          parameter_list=None)
 
-    state = "Virginia"
     params = load_parameters(state)
-
-    start_datetime = "2022-01-01"
-    end_datetime = "2025-08-31"
-    eia_start_time = "2022-01-01"
-    eia_end_time = "2023-12-31"
-
-
-    start_training_time = start_datetime
-    end_training_time = end_datetime
 
 
     file_handler, log_handler = init_logs(state, "residential")
@@ -72,8 +80,8 @@ def inference_engine():
     app_params["log_handler"] = log_handler
 
     data, _, _ = load_residential_data(state,
-                                       start_training_time,
-                                       end_training_time,
+                                       start_datetime,
+                                       end_datetime,
                                        app_params=app_params)
 
 

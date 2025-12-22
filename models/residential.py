@@ -334,7 +334,10 @@ def calculate_eia_monthly_consumption_constraints(model,
 
             monthly_value = float(row[state])
 
-            if (monthly_value is float("nan")) or monthly_value is float("inf"):
+            if ((monthly_value is float("nan"))
+                or monthly_value is float("inf")
+                or (monthly_value is float and np.isclose(monthly_value, 0))):
+
                 continue
 
             day_of_week, end_of_month_day_number = calendar.monthrange(year, month)
