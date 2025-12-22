@@ -42,4 +42,23 @@ The feature list is provided below:
 
      I think that setting up the entire GUI should not take that long.
 
-     I think that nailing down the
+
+As we think more about this, the prediction element will require two stages:
+    1. Given weather data and EIA data, create the fit between (1) daily hdd with normal hdd subtracted and (2) eia monthly with eia average subtracted.
+    2. This provides us with sensitivity between (1) an hdd and (2) eia, which can then be tapped onto the average eia.
+    3. This provides us with EIA monthly values within a certain percentage of like 5%.
+    4. The question is how does one form the daily value.
+        - One can apply the sensitivity parameter directly to the HDD value.
+        - Likewise, one can develop a new fit where (a) the monthly values are fixed, and (b) one re-applies our HDD to Weather
+        calculation.
+        - Likewise, each day can be viewed as contributing a little EIA value over the EIA Average, which is meant
+        to correspond to a little hdd over average HDD on a particular day.
+        - Hence, we can likely do this with a day weighted porportionality.
+        - Take the average EIA value for the month and take the average EIA monthly value, porportion it
+        is out on a daily basis for the month, this delivers an average EIA daily value that when summing up
+        the daily values yields the monthly average.
+        - We can apply the alpha parameter on the deltas?
+
+    This is the correct method for doing this.
+    This requires only training of the delta parameters.
+    The delta parameters seem to have provided a good method for doing this.
