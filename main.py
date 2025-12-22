@@ -46,7 +46,7 @@ from models.residential import fit_residential_model
 from models.commercial import fit_commercial_model
 from models.electric_power_consumption import fit_electric_power_model
 import argparse
-from inference.inference import inference_engine
+from inference.inference import spectral_inference_engine
 from multiprocessing_methods import multiprocessing_framework
 import logging
 from typing import List
