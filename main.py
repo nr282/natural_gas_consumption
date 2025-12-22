@@ -150,12 +150,15 @@ def run_inference():
     :return:
     """
 
-    inference_engine()
+    spectral_inference_engine()
 
 
 if __name__ == "__main__":
 
 
+    residential_training_func("Virginia")
+
+    """
     parser = argparse.ArgumentParser(description="Parses arguments")
     parser.add_argument("--training", action='store_true', help="States if we want to run training")
     parser.add_argument("--inference", action='store_true', help="States if we want to run inference")
@@ -180,4 +183,4 @@ if __name__ == "__main__":
     elif args.inference:
         run_inference()
 
-
+    """
