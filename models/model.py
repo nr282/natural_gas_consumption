@@ -56,7 +56,7 @@ class Model(ABC):
         merged_df["relative_error_non_percent"] = merged_df["error"] / merged_df[state].astype(np.float64).abs()
         logging.info(f"Monthly Estimate Comparison {merged_df}")
         logging.info(f"Monthly Estimate Comparison {merged_df[['relative_error_non_percent', 'Date']]}")
-        return float(merged_df["error"].sum())
+        return float(merged_df["error"].sum() / merged_df[state].astype(np.float64).abs().sum())
 
     @abstractmethod
     def inference(self,
@@ -134,13 +134,13 @@ class Model(ABC):
             if estimated_daily_data is None or estimated_monthly_data is None or params is None:
                 return float('inf')
 
-            relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
+            error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
             log_handler = app_params["log_handler"]
             file_handler = app_params["file_handler"]
-            log_handler.info(f"The relative error is {relative_error} for params {params}")
+            log_handler.info(f"The relative error is {error} for params {params}")
             time.sleep(1)
             file_handler.flush()
-            return relative_error
+            return error
 
         bounds = self.calculate_bounds()
 
