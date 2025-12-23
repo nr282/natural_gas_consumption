@@ -113,9 +113,6 @@ def spectral_inference_engine(state,
                                        app_params=app_params,
                                        differencing=False)
 
-    import pdb
-    pdb.set_trace()
-
 
     #This adds together (a) eia_estimated_daily_observations to the
     #eia daily values discovered by looking at averages.
@@ -130,7 +127,7 @@ def spectral_inference_engine(state,
     logging.info(f"EIA estimated daily observations: {estimated_monthly_data}")
     logging.info(f"Parameters are provided by: {params}")
 
-    return eia_estimated_daily_observations, estimated_monthly_data, params
+    return daily_values
 
 
 

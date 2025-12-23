@@ -26,7 +26,7 @@ def fit_daily_consumption_error(eia_data: pd.DataFrame, state: str):
     :return:
     """
 
-    return eia_data[state].astype(float).mean() / 30
+    return fit_monthly_consumption_error(eia_data, state) / 30
 
 def fit_minimum_consumption(eia_data: pd.DataFrame, state: str):
     """
@@ -53,7 +53,10 @@ def fit_theta_2_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state:
 
 
 def fit_monthly_consumption_error(eia_data: pd.DataFrame, state: str):
-    return 0.1
+
+    month_average = 0.2 * eia_data["month_diff"].abs().mean()
+    return month_average
+
 
 def calibration(consumption_factor,
                 eia_data: pd.DataFrame,
