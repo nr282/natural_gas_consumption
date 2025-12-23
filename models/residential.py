@@ -79,7 +79,7 @@ class ResidentialModel(Model):
         eia_observations_by_date["Month"] = eia_observations_by_date.index.to_series().apply(lambda x: x.month)
         eia_observations_by_date["Year"] = eia_observations_by_date.index.to_series().apply(lambda x: x.year)
         eia_observations_by_date["Date"] = eia_observations_by_date.index.to_series().apply(lambda x: datetime.datetime(x.year, x.month, x.day))
-        eia_observations_by_month = eia_observations_by_date.groupby(["Year", "Month"]).sum().reset_index()
+        eia_observations_by_month = eia_observations_by_date.groupby(["Year", "Month"])["eia_observations"].sum().reset_index()
         eia_observations_by_month["Date"] = pd.to_datetime(eia_observations_by_month.apply(lambda row: datetime.datetime(int(row["Year"]), int(row["Month"]), 1), axis=1))
         return eia_observations_by_date, eia_observations_by_month
 
