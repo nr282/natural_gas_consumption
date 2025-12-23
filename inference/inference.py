@@ -22,13 +22,13 @@ from multiprocessing_methods.multiprocessing_framework import init_logs
 
 logging.basicConfig(level=logging.INFO)
 
-def load_parameters(state):
+def load_parameters(state, consumption_type):
     """
     Load parameters from the state's parameters json file
     """
 
     base_path = get_base_path()
-    path = os.path.join(base_path, "params", state.lower(), "params.json")
+    path = os.path.join(base_path, "params", state.lower(), consumption_type + "_params.json")
     if not os.path.exists(path):
         raise RuntimeError(f"File has not been found at the path provided by: {path}.")
 
@@ -42,7 +42,9 @@ def load_parameters(state):
 
 def spectral_inference_engine(state,
                               start_datetime,
-                              end_datetime
+                              end_datetime,
+                              component_type,
+                              args=None,
                               ):
     """
     Calculates the daily EIA values using the statistical techniques for a
@@ -60,21 +62,15 @@ def spectral_inference_engine(state,
 
     It should also be able to take in modified parameters to allow for a play-ground type behavior.
 
-
-    TODO: Need to build this function out.
-    TODO: This function should handle all of these cases.
-    TODO: How 
-
     :return:
     """
 
+    consumption_type = "residential"
     residential_model = ResidentialModel(calibrated_parameters=None,
                                          parameter_list=None)
 
-    params = load_parameters(state)
-
-
-    file_handler, log_handler = init_logs(state, "residential")
+    params = load_parameters(state, consumption_type)
+    file_handler, log_handler = init_logs(state, consumption_type)
     app_params = dict()
     app_params["file_handler"] = file_handler
     app_params["log_handler"] = log_handler
@@ -82,17 +78,37 @@ def spectral_inference_engine(state,
     data, _, _ = load_residential_data(state,
                                        start_datetime,
                                        end_datetime,
-                                       app_params=app_params)
+                                       app_params=app_params,
+                                       differencing=True)
 
 
-
+    #eia_estimated_daily_observations represents the differences from the average value.
+    #eia_estimated_daily_observations is based on (a) training parameters and (b) consumption factor values
+    #that have been estimated.
     eia_estimated_daily_observations, estimated_monthly_data, params = residential_model.inference(start_datetime,
                                                                                                    end_datetime,
-                                                                                                   eia_start_time,
-                                                                                                   eia_end_time,
+                                                                                                   start_datetime,
+                                                                                                   end_datetime,
                                                                                                    params,
                                                                                                    data,
                                                                                                    app_params=app_params)
+
+    data, _, _ = load_residential_data(state,
+                                       start_datetime,
+                                       end_datetime,
+                                       app_params=app_params,
+                                       differencing=False)
+
+
+    #This adds together (a) eia_estimated_daily_observations to the
+    #eia daily values discovered by looking at averages.
+    daily_values = residential_model.inference_for_daily_values(start_datetime,
+                                                                end_datetime,
+                                                                data,
+                                                                eia_estimated_daily_observations,
+                                                                app_params=app_params)
+
+
 
     logging.info(f"EIA estimated daily observations: {estimated_monthly_data}")
     logging.info(f"Parameters are provided by: {params}")
@@ -100,45 +116,16 @@ def spectral_inference_engine(state,
     return eia_estimated_daily_observations, estimated_monthly_data, params
 
 
-def calculate_adjustments(eia_estimated_daily_observations, estimated_monthly_data):
-    """
-    After observing the fact that inclusion of the month is a good
-    predictor for EIA data, I have decided to add this to our inferences.
-
-    Namely, that for Virginia the years 2022 and 2023 monthly data accurately
-    predicts 2024 monthly data. It motivates the inclusion of monthly variables
-    into the calculation.
-
-    In this function, we aim to calculate a historical monthly adjustment.
-    """
-
-    pass
-
-
-def calculate_adjusted_daily_values(eia_estimated_daily_observations,
-                                    adjustments):
-    """
-    Calculates adjusted daily values with the daily values developed from inference
-    engine and monthly adjustments from historical
-
-
-    """
-
-    pass
-
-
-def inference_with_monthly_adjustments():
-
-    eia_estimated_daily_observations, estimated_monthly_data = inference_engine()
-    adjustments = calculate_adjustments(eia_estimated_daily_observations, estimated_monthly_data)
-    eia_estimated_daily_observations_adjusted = calculate_adjusted_daily_values(eia_estimated_daily_observations,
-                                                                                adjustments)
-
-
-    return eia_estimated_daily_observations, estimated_monthly_data, adjustments
-
-
 
 
 if __name__ == "__main__":
-    inference_with_monthly_adjustments()
+
+    start_time = "2023-01-01"
+    end_time = "2024-12-31"
+    state = "Virginia"
+    component_type = "residential"
+    spectral_inference_engine(state,
+                              start_time,
+                              end_time,
+                              component_type,
+                              args={})

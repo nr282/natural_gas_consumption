@@ -149,11 +149,35 @@ class ResidentialModel(Model):
                                                           app_params=app_params)
 
             try:
-                idata = pm.sample(draws=200, tune=200, cores=os.cpu_count())
+                idata = pm.sample(draws=2, tune=2, cores=os.cpu_count())
             except:
                 return None, None, None
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
             return eia_estimated_daily_observations, estimated_estimated_monthly_data, params
+
+
+    def inference_for_daily_values(self,
+                                   state,
+                                   start_datetime: str,
+                                   end_datetime: str,
+                                   data: dict,
+                                   daily_adjustments: pd.Series,
+                                   app_params: dict = None):
+        """
+        Inference for daily values for the given state, start time, end time,
+        data and the app params.
+
+        The goal is to calculate the daily consumption values for the given
+        state during the given period of time, by applying the data and the daily
+        adjustments.
+
+        Add (1) daily_adjustments and (2) eia_daily_average, add the two.
+        """
+
+        eia_daily_average = data["eia_average_daily_values"]
+        eia_all_values = eia_daily_average.merge(daily_adjustments, how="left", on="Date")
+        eia_all_values["eia_daily_consumption"] = eia_daily_average["eia_daily_average"] + eia_all_values["daily_adjustment"]
+        return eia_all_values[["Date", "eia_daily_consumption"]]
 
     def get_params_for_model(self) -> dict:
         """
@@ -280,9 +304,6 @@ class ResidentialModelLinearRegression(Model):
                 }
 
 
-
-
-
 def calculate_consumption_lagged(consumption_factor_values):
     """
     Calculate consumption factor lagged values.
@@ -407,6 +428,23 @@ def calculate_eia_data(eia_data: pd.DataFrame, state):
     return eia_data
 
 
+def calculate_eia_average_daily_values(eia_data, consumption_factor):
+
+    month_to_eia_average = eia_data[["Month", "month_average"]].groupby(["Month"]).mean().to_dict()["month_average"]
+    consumption_factor["Month"] = consumption_factor["Date"].dt.month
+    consumption_factor["Year"] = consumption_factor["Date"].dt.year
+    consumption_factor["Day"] = consumption_factor["Date"].dt.day
+    day_to_average_weather = consumption_factor[["Date", "avg_dd", "Year", "Month", "Day"]]
+    day_to_average_weather = day_to_average_weather.groupby(["Month"])["avg_dd"].sum().to_dict()
+    hdd_to_eia_per_month = dict()
+    for month in month_to_eia_average:
+        month_hdd = day_to_average_weather[month]
+        month_eia = month_to_eia_average[month]
+        hdd_to_eia_per_month[month] = month_eia / month_hdd
+    consumption_factor["eia_daily_average"] = consumption_factor.apply(lambda row: row["avg_dd"] * hdd_to_eia_per_month[row["Month"]], axis=1)
+    eia_daily_average = consumption_factor[["Date", "eia_daily_average"]]
+    return eia_daily_average
+
 def load_residential_data(state,
                           start_training_time,
                           end_training_time,
@@ -418,9 +456,13 @@ def load_residential_data(state,
 
     The function also does preprocessing of the residential data.
 
-
     :return:
     """
+
+
+    #TODO: Handle the future date.
+    #if end_training_time > datetime.datetime.now():
+    #    raise ValueError("End Training Time cannot be in the future.")
 
     file_handler = app_params["file_handler"]
     log_handler = app_params["log_handler"]
@@ -461,7 +503,7 @@ def load_residential_data(state,
     data["full_eia_data"] = eia_data
     data["consumption_factor_values"] = consumption_factor
     data["state"] = state
-
+    data["eia_average_daily_values"] = calculate_eia_average_daily_values(eia_data, consumption_factor)
 
     return data, consumption_factor, eia_data
 
