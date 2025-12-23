@@ -197,7 +197,7 @@ class Model(ABC):
 
             relative_error = self.calculate_accuracy(estimated_monthly_data, data, data["state"])
 
-            logging.info(f"The relative error is {relative_error} for params {params}")
+            logging.info(f"The percent error is {100 * relative_error} for params {params}")
             logging.info(f"The estimated monthly data is: {estimated_monthly_data}")
             logging.info(f"The actual data is: {data['full_eia_data']}")
 
