@@ -900,3 +900,318 @@ Calculating EIA Monthly Constraints...
 Calculating EIA Monthly Constraints...
 Calculating EIA Monthly Constraints...
 Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2023-01                13158
+2023-02                10478
+2023-03                 9964
+2023-04                 4160
+2023-05                 2774
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+The relative error is 49371.608713261114 for params {'alpha_mu': np.float64(13.911971264441698), 'alpha_sigma': np.float64(0.9107209321868186), 'alpha_2_mu': np.float64(0.019187161804606313), 'alpha_2_sigma': np.float64(0.16104367874466313), 'daily_consumption_error': np.float64(0.03078097503576195), 'monthly_consumption_error': np.float64(0.11009867084792825)}
+Calculating EIA Monthly Constraints...
+The relative error is 65140.046533098175 for params {'alpha_mu': np.float64(18.085396695962945), 'alpha_sigma': np.float64(0.7684329133457162), 'alpha_2_mu': np.float64(0.016329919832977248), 'alpha_2_sigma': np.float64(0.15154690005889668), 'daily_consumption_error': np.float64(0.028212005057079485), 'monthly_consumption_error': np.float64(0.09130820524020167)}
+Calculating EIA Monthly Constraints...
+The relative error is 49921.75792359616 for params {'alpha_mu': np.float64(15.384247986545507), 'alpha_sigma': np.float64(0.7073330697160758), 'alpha_2_mu': np.float64(0.014986056291892922), 'alpha_2_sigma': np.float64(0.15684256243647485), 'daily_consumption_error': np.float64(0.028838545151491667), 'monthly_consumption_error': np.float64(0.10415624357327458)}
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+The relative error is 57042.46838136281 for params {'alpha_mu': np.float64(14.719301781060366), 'alpha_sigma': np.float64(0.7152492339206815), 'alpha_2_mu': np.float64(0.018774159997160006), 'alpha_2_sigma': np.float64(0.15700608978198158), 'daily_consumption_error': np.float64(0.028965519071910775), 'monthly_consumption_error': np.float64(0.10403291525185279)}
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+The relative error is 57106.862022511064 for params {'alpha_mu': np.float64(13.93706231470356), 'alpha_sigma': np.float64(0.6713183044515446), 'alpha_2_mu': np.float64(0.014310634255437509), 'alpha_2_sigma': np.float64(0.1714205845537619), 'daily_consumption_error': np.float64(0.03145830387354405), 'monthly_consumption_error': np.float64(0.11666206599942758)}
+Calculating EIA Monthly Constraints...
+The relative error is 59349.159734939836 for params {'alpha_mu': np.float64(15.916818150516068), 'alpha_sigma': np.float64(0.9911843641323621), 'alpha_2_mu': np.float64(0.01455020925289048), 'alpha_2_sigma': np.float64(0.1593086992149155), 'daily_consumption_error': np.float64(0.03440399933639262), 'monthly_consumption_error': np.float64(0.0880417954188919)}
+Calculating EIA Monthly Constraints...
+The relative error is 77236.40431147747 for params {'alpha_mu': np.float64(17.544560592784112), 'alpha_sigma': np.float64(0.8363398698827518), 'alpha_2_mu': np.float64(0.01652832036285534), 'alpha_2_sigma': np.float64(0.19355692995446547), 'daily_consumption_error': np.float64(0.03110432108387002), 'monthly_consumption_error': np.float64(0.08042634709747581)}
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+The relative error is 67214.31501128114 for params {'alpha_mu': np.float64(16.740315230857252), 'alpha_sigma': np.float64(0.8471824916143758), 'alpha_2_mu': np.float64(0.017186071000206117), 'alpha_2_sigma': np.float64(0.16683204353018266), 'daily_consumption_error': np.float64(0.02946335357306969), 'monthly_consumption_error': np.float64(0.09833094067850098)}
+Calculating EIA Monthly Constraints...
+The relative error is 61970.95589368836 for params {'alpha_mu': np.float64(16.217548729457512), 'alpha_sigma': np.float64(0.8223829543684729), 'alpha_2_mu': np.float64(0.017284902897566883), 'alpha_2_sigma': np.float64(0.17193087558540943), 'daily_consumption_error': np.float64(0.030481032904052047), 'monthly_consumption_error': np.float64(0.10308435300928445)}
+Calculating EIA Monthly Constraints...
+The relative error is 52762.38695441779 for params {'alpha_mu': np.float64(16.497548202636523), 'alpha_sigma': np.float64(0.8533989877826258), 'alpha_2_mu': np.float64(0.016136533295220672), 'alpha_2_sigma': np.float64(0.16974913088140592), 'daily_consumption_error': np.float64(0.0296574541786018), 'monthly_consumption_error': np.float64(0.09926077236321598)}
+Calculating EIA Monthly Constraints...
+The relative error is 62425.65417822429 for params {'alpha_mu': np.float64(16.66815168357806), 'alpha_sigma': np.float64(0.791200311934118), 'alpha_2_mu': np.float64(0.01577120994000018), 'alpha_2_sigma': np.float64(0.17394608400301315), 'daily_consumption_error': np.float64(0.03001017198617076), 'monthly_consumption_error': np.float64(0.09924391020079273)}
+Calculating EIA Monthly Constraints...
+The relative error is 61996.384914360424 for params {'alpha_mu': np.float64(15.797494900515922), 'alpha_sigma': np.float64(0.8173015099523835), 'alpha_2_mu': np.float64(0.016556567411949007), 'alpha_2_sigma': np.float64(0.1742427058978558), 'daily_consumption_error': np.float64(0.030696050798060176), 'monthly_consumption_error': np.float64(0.09565296157621897)}
+Calculating EIA Monthly Constraints...
+The relative error is 66566.1724632245 for params {'alpha_mu': np.float64(15.93185239718997), 'alpha_sigma': np.float64(0.8413213794397381), 'alpha_2_mu': np.float64(0.015839346199217463), 'alpha_2_sigma': np.float64(0.17427045454571033), 'daily_consumption_error': np.float64(0.030272767985976473), 'monthly_consumption_error': np.float64(0.10288994647001884)}
+Calculating EIA Monthly Constraints...
+The relative error is 70000.39227140328 for params {'alpha_mu': np.float64(16.109571135651663), 'alpha_sigma': np.float64(0.7973999704487693), 'alpha_2_mu': np.float64(0.016573817710204285), 'alpha_2_sigma': np.float64(0.1635468664577056), 'daily_consumption_error': np.float64(0.029375949368389748), 'monthly_consumption_error': np.float64(0.10197928009978166)}
+Calculating EIA Monthly Constraints...
+The relative error is 56070.08726131505 for params {'alpha_mu': np.float64(16.340633693910696), 'alpha_sigma': np.float64(0.8533989877826258), 'alpha_2_mu': np.float64(0.016136533295220672), 'alpha_2_sigma': np.float64(0.16974913088140592), 'daily_consumption_error': np.float64(0.0296574541786018), 'monthly_consumption_error': np.float64(0.09926077236321598)}
+Calculating EIA Monthly Constraints...
+The relative error is 57821.418299537836 for params {'alpha_mu': np.float64(16.497548202636523), 'alpha_sigma': np.float64(0.8649873536551143), 'alpha_2_mu': np.float64(0.016136533295220672), 'alpha_2_sigma': np.float64(0.16974913088140592), 'daily_consumption_error': np.float64(0.0296574541786018), 'monthly_consumption_error': np.float64(0.09926077236321598)}
+Calculating EIA Monthly Constraints...
+The relative error is 52173.37932811197 for params {'alpha_mu': np.float64(16.497548202636523), 'alpha_sigma': np.float64(0.8533989877826258), 'alpha_2_mu': np.float64(0.016134571179911694), 'alpha_2_sigma': np.float64(0.16974913088140592), 'daily_consumption_error': np.float64(0.0296574541786018), 'monthly_consumption_error': np.float64(0.09926077236321598)}
+Calculating EIA Monthly Constraints...
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2024-01                16792
+2024-02                11814
+2024-03                 8488
+2024-04                 4725
+2024-05                 2395
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2024-01-01 with index 2024-01
+Applying Constraint for 2024-02-01 with index 2024-02
+Applying Constraint for 2024-03-01 with index 2024-03
+Applying Constraint for 2024-04-01 with index 2024-04
+Applying Constraint for 2024-05-01 with index 2024-05
+Applying Constraint for 2024-06-01 with index 2024-06
+Applying Constraint for 2024-07-01 with index 2024-07
+Applying Constraint for 2024-08-01 with index 2024-08
+Applying Constraint for 2024-09-01 with index 2024-09
+Applying Constraint for 2024-10-01 with index 2024-10
+Applying Constraint for 2024-11-01 with index 2024-11
+Applying Constraint for 2024-12-01 with index 2024-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2024-01-01 with index 2024-01
+Applying Constraint for 2024-02-01 with index 2024-02
+Applying Constraint for 2024-03-01 with index 2024-03
+Applying Constraint for 2024-04-01 with index 2024-04
+Applying Constraint for 2024-05-01 with index 2024-05
+Applying Constraint for 2024-06-01 with index 2024-06
+Applying Constraint for 2024-07-01 with index 2024-07
+Applying Constraint for 2024-08-01 with index 2024-08
+Applying Constraint for 2024-09-01 with index 2024-09
+Applying Constraint for 2024-10-01 with index 2024-10
+Applying Constraint for 2024-11-01 with index 2024-11
+Applying Constraint for 2024-12-01 with index 2024-12
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+The relative error is 37649.972378946746 for params {'alpha_mu': np.float64(16.71757393887508), 'alpha_sigma': np.float64(3.2714649567323377), 'alpha_2_mu': np.float64(0.016717538387112506), 'alpha_2_sigma': np.float64(0.16784826526103525), 'daily_consumption_error': np.float64(0.031297715180575475), 'monthly_consumption_error': np.float64(0.10198754264108524)}
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Initialization of the logs...
+Begin fitting residential model...
+Acquiring EIA Residential Data
+Finished EIA Residential Data. Some EIA Data is provided as: standard_state_name Virginia
+period                      
+2020-01                14549
+2020-02                11947
+2020-03                 7568
+2020-04                 5110
+2020-05                 4207
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Calculating EIA Monthly Constraints...
+Applying Constraint for 2023-01-01 with index 2023-01
+Applying Constraint for 2023-02-01 with index 2023-02
+Applying Constraint for 2023-03-01 with index 2023-03
+Applying Constraint for 2023-04-01 with index 2023-04
+Applying Constraint for 2023-05-01 with index 2023-05
+Applying Constraint for 2023-06-01 with index 2023-06
+Applying Constraint for 2023-07-01 with index 2023-07
+Applying Constraint for 2023-08-01 with index 2023-08
+Applying Constraint for 2023-09-01 with index 2023-09
+Applying Constraint for 2023-10-01 with index 2023-10
+Applying Constraint for 2023-11-01 with index 2023-11
+Applying Constraint for 2023-12-01 with index 2023-12
+Initialization of the logs...
+Acquiring EIA Residential Data

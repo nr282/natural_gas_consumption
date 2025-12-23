@@ -40,6 +40,20 @@ def load_parameters(state, consumption_type):
             final_params[key] = float(value)
     return final_params
 
+
+def example_of_spectral_inference_engine():
+
+
+    start_time = "2024-01-01"
+    end_time = "2024-12-31"
+    state = "Virginia"
+    component_type = "residential"
+    spectral_inference_engine(state,
+                              start_time,
+                              end_time,
+                              component_type,
+                              args={})
+
 def spectral_inference_engine(state,
                               start_datetime,
                               end_datetime,
@@ -99,6 +113,9 @@ def spectral_inference_engine(state,
                                        app_params=app_params,
                                        differencing=False)
 
+    import pdb
+    pdb.set_trace()
+
 
     #This adds together (a) eia_estimated_daily_observations to the
     #eia daily values discovered by looking at averages.
@@ -119,13 +136,4 @@ def spectral_inference_engine(state,
 
 
 if __name__ == "__main__":
-
-    start_time = "2023-01-01"
-    end_time = "2024-12-31"
-    state = "Virginia"
-    component_type = "residential"
-    spectral_inference_engine(state,
-                              start_time,
-                              end_time,
-                              component_type,
-                              args={})
+    example_of_spectral_inference_engine()

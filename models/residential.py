@@ -78,6 +78,7 @@ class ResidentialModel(Model):
         eia_observations_by_date["Day"] = eia_observations_by_date.index.to_series().apply(lambda x: x.day)
         eia_observations_by_date["Month"] = eia_observations_by_date.index.to_series().apply(lambda x: x.month)
         eia_observations_by_date["Year"] = eia_observations_by_date.index.to_series().apply(lambda x: x.year)
+        eia_observations_by_date["Date"] = eia_observations_by_date.index.to_series().apply(lambda x: datetime.datetime(x.year, x.month, x.day))
         eia_observations_by_month = eia_observations_by_date.groupby(["Year", "Month"]).sum().reset_index()
         eia_observations_by_month["Date"] = pd.to_datetime(eia_observations_by_month.apply(lambda row: datetime.datetime(int(row["Year"]), int(row["Month"]), 1), axis=1))
         return eia_observations_by_date, eia_observations_by_month
@@ -149,7 +150,7 @@ class ResidentialModel(Model):
                                                           app_params=app_params)
 
             try:
-                idata = pm.sample(draws=2, tune=2, cores=os.cpu_count())
+                idata = pm.sample(draws=2, tune=2, cores=1)
             except:
                 return None, None, None
             eia_estimated_daily_observations, estimated_estimated_monthly_data = self._calculate_estimated_eia_monthly_data(idata)
@@ -176,7 +177,7 @@ class ResidentialModel(Model):
 
         eia_daily_average = data["eia_average_daily_values"]
         eia_all_values = eia_daily_average.merge(daily_adjustments, how="left", on="Date")
-        eia_all_values["eia_daily_consumption"] = eia_daily_average["eia_daily_average"] + eia_all_values["daily_adjustment"]
+        eia_all_values["eia_daily_consumption"] = eia_daily_average["eia_daily_average"] + eia_all_values["eia_observations"]
         return eia_all_values[["Date", "eia_daily_consumption"]]
 
     def get_params_for_model(self) -> dict:

@@ -52,6 +52,7 @@ import logging
 from typing import List
 from data.eia_consumption.eia_geography_mappings import us_state_to_abbrev
 from multiprocessing_methods.multiprocessing_framework import init_logs
+from inference.inference import example_of_spectral_inference_engine
 
 
 pd.set_option('display.max_columns', None)
@@ -155,6 +156,7 @@ def run_inference():
 
 if __name__ == "__main__":
 
+    #example_of_spectral_inference_engine()
 
     residential_training_func("Virginia")
 
