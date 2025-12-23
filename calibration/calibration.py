@@ -54,7 +54,7 @@ def fit_theta_2_sig_parameter(consumption_factor, eia_data: pd.DataFrame, state:
 
 def fit_monthly_consumption_error(eia_data: pd.DataFrame, state: str):
 
-    month_average = 0.2 * eia_data["month_diff"].abs().mean()
+    month_average = 0.05 * eia_data["month_diff"].abs().mean()
     return month_average
 
 
