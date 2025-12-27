@@ -1,10 +1,10 @@
 """
-The weather module will aim to be the major supplier of weather data to the application.
+The weather_mod module will aim to be the major supplier of weather_mod data to the application.
 
-A key component will be providing an abstract class (ie interface) to which weather datasets will be
+A key component will be providing an abstract class (ie interface) to which weather_mod datasets will be
 mapped.
 
-This will allow the user of a weather data interopability between a variety of different weather datasets.
+This will allow the user of a weather_mod data interopability between a variety of different weather_mod datasets.
 
 To express this, I present the diagram below:
 
@@ -18,7 +18,6 @@ TODO: After getting New York setup, we can move on to other states.
 
 """
 
-from datetime import datetime
 import pandas as pd
 import python_weather
 from meteostat import Point, Daily
@@ -30,11 +29,16 @@ from abc import ABC, abstractmethod
 from typing import List, Union, Optional
 from collections import namedtuple
 
-from data.eia_consumption.eia_geography_mappings import abbrev_to_us_state
+from data.eia_consumption.eia_geography_mappings import abbrev_to_us_state, us_state_to_abbrev
 from location import raw_name_to_standard_name, get_list_of_standardizied_name
 import logging
 from .mathematical_models_natural_gas import calculate_hdd, calculate_cdd, TemperatureType
 from utils import *
+from data.weather_mod.forecast.acquire_prescient import get_weather_data_for_all_states, get_weather_data_for_state
+import requests
+from io import StringIO
+
+
 
 location = namedtuple('Location', ['Latitude', 'Longitude'])
 
@@ -78,7 +82,7 @@ def get_weather_data(start: datetime,
 
             location_num += 1
         else:
-            logging.warning(f"No weather data for {city}, {state}")
+            logging.warning(f"No weather_mod data for {city}, {state}")
 
     complete_data = pd.concat(dataframes)
 
@@ -93,8 +97,48 @@ def get_weather_data(start: datetime,
     return pivot_complete_data
 
 
-def get_prescient_weather_data_via_api():
-    raise NotImplementedError("Currently the Prescient API is not implemented.")
+def format_df(forecast_df: pd.DataFrame) -> pd.DataFrame:
+
+
+    forecast_df["Region Type"] = "STATE"
+    forecast_df["Date"] = forecast_df["fcstdate"]
+    forecast_df = forecast_df.rename(columns={"popcdd": "Population CDD",
+                                              "region": "Region",
+                                              "pophdd": "Population HDD"})
+    forecast_df["Forecast Type"] = "Forecast"
+
+    return forecast_df
+
+def get_prescient_weather_data_via_api(state: str,
+                                       current_date=datetime.now()) -> pd.DataFrame:
+    """
+    Accumulate both forecast and historical data for the given state.
+
+    """
+
+
+    if state in abbrev_to_us_state:
+        pass
+    elif state not in abbrev_to_us_state:
+        if state in us_state_to_abbrev:
+            state = us_state_to_abbrev[state]
+        if state not in abbrev_to_us_state:
+            raise ValueError(f"State {state} not found in abbrev_to_us_state.")
+
+    data_historical = requests.get("https://s2s.worldclimateservice.com/wcs/regional_degree_day_history_daily_v2025.csv")
+    if data_historical.status_code == 200:
+        data_string = data_historical.content.decode('utf-8')
+        historical_df = pd.read_csv(StringIO(data_string))
+        historical_df["Forecast Type"] = "Historical"
+
+    forecast_cdd_df = get_weather_data_for_state(current_date, state, "popcdd")
+    forecast_hdd_df = get_weather_data_for_state(current_date, state, "pophdd")
+    forecast_hdd_df = forecast_hdd_df.drop(columns=["fcstdate", "initdate", "region"])
+    forecast_df = pd.concat([forecast_hdd_df, forecast_cdd_df], axis=1)
+    forecast_df = format_df(forecast_df)
+    df = pd.concat([historical_df, forecast_df])
+
+    return df
 
 
 def prescient_weather_data_via_csv_handler(state):
@@ -105,8 +149,8 @@ def prescient_weather_data_via_csv_handler(state):
 
     """
 
-    p_0 = os.path.join(get_base_path(), "data", "weather", state, f"{state.lower()}_hdd_cdd_obs.csv")
-    p_1 = os.path.join(get_base_path(), "data", "weather", "State", f"regional_degree_day_history_daily_v2025.csv")
+    p_0 = os.path.join(get_base_path(), "data", "weather_mod", state, f"{state.lower()}_hdd_cdd_obs.csv")
+    p_1 = os.path.join(get_base_path(), "data", "weather_mod", "State", f"regional_degree_day_history_daily_v2025.csv")
 
     paths_for_prescient_weather_data = [p_1, p_0]
     for path in paths_for_prescient_weather_data:
@@ -115,7 +159,7 @@ def prescient_weather_data_via_csv_handler(state):
             return df
         else:
             logging.warning(f"Could not find path {path}")
-    raise Exception("Could not find path for prescient weather data.")
+    raise Exception("Could not find path for prescient weather_mod data.")
 
 
 def standardize_df(df):
@@ -140,18 +184,18 @@ def get_prescient_weather_data_via_csv(state):
 
 def get_prescient_weather_data(state):
     """
-    Gets the prescient weather data. Prescient Weather Data is a particular weather
+    Gets the prescient weather_mod data. Prescient Weather Data is a particular weather_mod
     vendor who has provided us with both csv and api access.
 
     :return:
     """
 
     try:
-        df = get_prescient_weather_data_via_api()
+        df = get_prescient_weather_data_via_api(state)
     except NotImplementedError:
         df = get_prescient_weather_data_via_csv(state)
     except Exception as e:
-        logging.error(f"Could not get prescient weather data via api or csv. Error: {e}")
+        logging.error(f"Could not get prescient weather_mod data via api or csv. Error: {e}")
         raise e
 
     return df
@@ -160,10 +204,10 @@ def get_prescient_weather_data(state):
 
 class Weather(ABC):
     """
-    Weather object that standardizes the weather data.
+    Weather object that standardizes the weather_mod data.
 
-    This will decouple (1) the weather data from a particular source from (2) the clients
-    that use the weather data.
+    This will decouple (1) the weather_mod data from a particular source from (2) the clients
+    that use the weather_mod data.
 
     Weather data can include temperature, wind speed, humidity etc, but the primary location
     is temperature.
@@ -284,12 +328,35 @@ class Weather(ABC):
             if standard_name != False:
                 self.df.rename(columns={column: standard_name}, inplace=True)
 
+def calculate_average_for_missing(res: pd.DataFrame,
+                                  start_dt: datetime,
+                                  end_dt: datetime,
+                                  min_time: datetime,
+                                  max_time: datetime,
+                                  degree_day_type: str) -> pd.DataFrame:
+
+    if "Date" in res.columns:
+        res["Year"] = res["Date"].dt.year
+        res["Month"] = res["Date"].dt.month
+        res["Day"] = res["Date"].dt.day
+
+    res = res.groupby(["Month", "Day"])[degree_day_type].mean().reset_index()
+    date_range = pd.date_range(start=start_dt, end=end_dt, freq="D")
+    averages = pd.DataFrame(date_range, columns=["Date"])
+    averages["Month"] = averages["Date"].dt.month
+    averages["Day"] = averages["Date"].dt.day
+    averages["Year"] = averages["Date"].dt.year
+    averages = averages.merge(res, on=["Month", "Day"], how="left")
+
+    return averages
+
+
 class PyWeatherData(Weather):
     """
-    PyWeather implements Weather using the python-weather library.
+    PyWeather implements Weather using the python-weather_mod library.
 
-    It aims to map the incoming data via the python weather library to
-    a universal class that will be the interface for all weather data.
+    It aims to map the incoming data via the python weather_mod library to
+    a universal class that will be the interface for all weather_mod data.
 
     """
 
@@ -373,22 +440,64 @@ class PrescientWeather(Weather):
         raise NotImplemented()
 
     def get_min_and_max_time_span(self) -> (datetime, datetime):
-        raise NotImplemented()
+        """
+        Gets the minimum and maximum time span for the weather_mod data.
+        """
+
+        if "Date" in self.raw_df.columns:
+            min_time = self.raw_df["Date"].min()
+            max_time = self.raw_df["Date"].max()
+            return min_time, max_time
+        else:
+            return None, None
 
     def get_cdd(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+
+        assert(type(start) == str and type(end) == str)
+        start_dt = datetime.strptime(start, "%Y-%m-%d")
+        end_dt = datetime.strptime(end, "%Y-%m-%d")
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
         res = df.merge(self.raw_df, on="Date", how="left")
         res = res[["Date", "Population CDD"]]
         res = res.rename(columns={"Population CDD": "CDD"})
+        assert(type(start) == str and type(end) == str)
+        min_time, max_time = self.get_min_and_max_time_span()
+        if min_time >= start_dt or max_time <= end_dt:
+            averages = calculate_average_for_missing(res,
+                                                     start_dt,
+                                                     end_dt,
+                                                     min_time,
+                                                     max_time,
+                                                     "CDD")
+
+            averages = averages.merge(res, on="Date", how="left")
+            averages["CDD"] = averages["CDD_y"].combine_first(averages["CDD_x"])
+
+
+            res = averages
+        else:
+            pass
+
+        assert("Date" in res.columns)
+        assert("CDD" in res.columns)
+
         return res
 
-    def get_hdd(self, locations: List[location], start: datetime, end: datetime) -> dict:
+
+    def get_hdd(self, locations: List[location], start, end) -> dict:
+
+        assert(type(start) == str and type(end) == str)
+
+        start_dt = datetime.strptime(start, "%Y-%m-%d")
+        end_dt = datetime.strptime(end, "%Y-%m-%d")
+
+        if start_dt < end_dt:
+            raise ValueError("Start date must be before end date.")
 
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
         res = df.merge(self.raw_df, on="Date", how="left")
-
         if "hdd" in res.columns:
             res = res[["Date", "hdd"]]
             res = res.rename(columns={"hdd": "HDD"})
@@ -396,6 +505,23 @@ class PrescientWeather(Weather):
             res = res[["Date", "HDD"]]
         else:
             raise ValueError("HDD column not found in dataframe.")
+
+        min_time, max_time = self.get_min_and_max_time_span()
+        if min_time >= start or max_time <= end:
+            averages = calculate_average_for_missing(res,
+                                                     start,
+                                                     end,
+                                                     min_time,
+                                                     max_time,
+                                                     "HDD")
+            averages = averages.merge(res, on="Date", how="left")
+            averages["HDD"] = averages["HDD_y"].combine_first(averages["HDD_x"])
+            res = averages
+        else:
+            pass
+
+        assert ("Date" in res.columns)
+        assert ("CDD" in res.columns)
 
         return res
 
@@ -425,6 +551,7 @@ def test_get_weather():
     pyweather_data = PyWeatherData(locations)
     data = pyweather_data.get_standardizied_data()
     return data
+
 
 if __name__ == "__main__":
     pass

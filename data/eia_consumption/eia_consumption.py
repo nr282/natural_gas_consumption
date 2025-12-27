@@ -12,8 +12,8 @@ There are two API's:
 Notes:
 ------
 
-1. Need to consider stochastic behavior of the weather and the eia eia_consumption.
-2. Primarily, I think that it will be more interesting to look at the stochastic behavior  of the weather.
+1. Need to consider stochastic behavior of the weather_mod and the eia eia_consumption.
+2. Primarily, I think that it will be more interesting to look at the stochastic behavior  of the weather_mod.
 
 
 
@@ -179,6 +179,108 @@ def get_next_month_first_day(current_day: str):
     next_month_first_day_string = next_month_first_day.strftime("%Y-%m-%d")
     return next_month_first_day_string
 
+def check_eia_consumption_result(start_date_str: str,
+                                 end_date_str: str,
+                                 eia_consumption_df: pd.DataFrame,
+                                 state: str = "Virginia"):
+
+    dates = pd.date_range(start_date_str, end_date_str, freq="MS")
+    virginia_df = eia_consumption_df[eia_consumption_df["standard_state_name"] == state]
+    virginia_periods = set(virginia_df["period"].unique())
+    candidate_periods = set([f"{date.year}-{str(date.month).zfill(2)}" for date in dates])
+    pct = len(virginia_periods) / len(candidate_periods) * 100.0
+    missing_periods = candidate_periods - virginia_periods
+    threshold = 95.0
+    return pct > threshold
+
+
+def get_eia_consumption_data_bulk_df_yearly(start_date_str: str,
+                                         end_date_str: str,
+                                         create_new_data=False):
+
+    start_date_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
+    start_year = start_date_dt.year
+    start_month = start_date_dt.month
+    end_year = end_date_dt.year
+    end_month = end_date_dt.month
+
+    years = list(range(start_year + 1, end_year))
+
+
+    if start_year == end_year and start_month <= end_month:
+        return get_eia_consumption_data_bulk_df(start_date_str,
+                                         end_date_str,
+                                         create_new_data=create_new_data)
+    elif start_year == end_year-1:
+        return get_eia_consumption_data_bulk_df(start_date_str,
+                                         end_date_str,
+                                         create_new_data=create_new_data
+                                        )
+    else:
+        start_year_end_date = datetime(start_year, 12, 31)
+        start_year_end_date_str = start_year_end_date.strftime("%Y-%m-%d")
+        start_df = get_eia_consumption_data_bulk_df(start_date_str,
+                                            start_year_end_date_str,
+                                            create_new_data=True
+                                            )
+
+        end_year_start_date = datetime(end_year, 1, 1)
+        end_year_start_date_str = end_year_start_date.strftime("%Y-%m-%d")
+        end_df = get_eia_consumption_data_bulk_df(end_year_start_date_str,
+                                              end_date_str,
+                                              create_new_data=True)
+        year_dfs = []
+        for year in years:
+            year_start_date = datetime(year, 1, 1)
+            year_start_date_str = year_start_date.strftime("%Y-%m-%d")
+            year_end_date = datetime(year, 12, 31)
+            year_end_date_str = year_end_date.strftime("%Y-%m-%d")
+            df = get_eia_consumption_data_bulk_df(year_start_date_str,
+                                                year_end_date_str,
+                                                create_new_data=True)
+            year_dfs.append(df)
+
+        return pd.concat(year_dfs + [start_df] + [end_df])
+
+def get_eia_consumption_data_bulk_df(start_date_str: str,
+                                     end_date_str: str,
+                                     create_new_data=False):
+
+    next_month_first_day_str = get_next_month_first_day(end_date_str)
+
+    api_call_successful, result = read_eia_consumption_data(start_date_str,
+                                                            next_month_first_day_str)
+
+    urlData = result.content
+    urlDataDecoded = urlData.decode('utf-8')
+    res = json.loads(urlDataDecoded)
+    response = res.get('response')
+
+    total = response.get('total')
+    date_format = response.get('dateFormat')
+    frequency = response.get('frequency')
+    warnings = response.get('warnings')
+    data = response.get('data')
+
+    eia_consumption_df = pd.DataFrame.from_records(data)
+
+    eia_consumption_df["standard_state_name"] = eia_consumption_df["area-name"].apply(
+        lambda area_name: convert_native_name_to_standard_state_name(area_name))
+
+
+    eia_consumption_df_good = check_eia_consumption_result(start_date_str,
+                                                         end_date_str,
+                                                         eia_consumption_df,
+                                                         "Virginia")
+
+    if eia_consumption_df_good:
+        logging.info(f"EIA Consumption data for {start_date_str} to {end_date_str} is good")
+    else:
+        logging.critical(f"EIA Consumption data for {start_date_str} to {end_date_str} is bad")
+
+    return eia_consumption_df
+
 
 def get_eia_consumption_data_df(start_date = "2024-01-01",
                                 end_date = "2024-10-01",
@@ -195,6 +297,8 @@ def get_eia_consumption_data_df(start_date = "2024-01-01",
 
     """
 
+    logging.info(f"get eia consumption data dataframe {start_date} to {end_date}")
+
     if os.path.exists(get_path_to_raw_eia()) and not create_new_data:
         return pd.read_csv(get_path_to_raw_eia())
 
@@ -208,6 +312,8 @@ def get_eia_consumption_data_df(start_date = "2024-01-01",
 
         start_date_str = str(interval.left)[:10]
         end_date_str = str(interval.right)[:10]
+
+        logging.info(f"get eia consumption data dataframe {start_date_str} to {end_date_str}")
 
         api_call_successful, result = read_eia_consumption_data(start_date_str,
                                                                 end_date_str)
@@ -260,17 +366,16 @@ def get_eia_consumption_data_in_pivot_format(start_date = "2000-01-01",
                                              create_new_data=True):
     """
     Get all eia data from 2000-01-01 to 2024-01-01.
-
     The method calls EIA multiple times to get results.
-
-
-
-    :return:
     """
 
-    eia_consumption_df = get_eia_consumption_data_df(start_date = start_date,
-                                                     end_date = end_date,
-                                                     create_new_data=create_new_data)
+    #eia_consumption_df = get_eia_consumption_data_df(start_date = start_date,
+    #                                                 end_date = end_date,
+    #
+
+    eia_consumption_df = get_eia_consumption_data_bulk_df_yearly(start_date,
+                                                                end_date,
+                                                                create_new_data=create_new_data)
 
 
 
@@ -283,6 +388,8 @@ def get_eia_consumption_data_in_pivot_format(start_date = "2000-01-01",
                                                   columns='standard_state_name',
                                                   values='value')
 
+
+    eia_residential_df.reset_index(inplace=True)
     return eia_residential_df
 
 
