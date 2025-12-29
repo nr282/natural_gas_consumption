@@ -137,6 +137,12 @@ def get_prescient_weather_data_via_api(state: str,
     forecast_df = pd.concat([forecast_hdd_df, forecast_cdd_df], axis=1)
     forecast_df = format_df(forecast_df)
     df = pd.concat([historical_df, forecast_df])
+    df = df[df["Region Type"] == "STATE"]
+    df = df[df["Region"] == state]
+
+    assert(df.Date.value_counts().max() == 1)
+    assert("Historical" in df["Forecast Type"].unique())
+    assert("Forecast" in df["Forecast Type"].unique())
 
     return df
 
@@ -456,9 +462,13 @@ class PrescientWeather(Weather):
         assert(type(start) == str and type(end) == str)
         start_dt = datetime.strptime(start, "%Y-%m-%d")
         end_dt = datetime.strptime(end, "%Y-%m-%d")
+        if end_dt < start_dt:
+            raise ValueError("Start date must be before end date.")
+
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
-        res = df.merge(self.raw_df, on="Date", how="left")
+
+        res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
         res = res[["Date", "Population CDD"]]
         res = res.rename(columns={"Population CDD": "CDD"})
         assert(type(start) == str and type(end) == str)
@@ -471,7 +481,7 @@ class PrescientWeather(Weather):
                                                      max_time,
                                                      "CDD")
 
-            averages = averages.merge(res, on="Date", how="left")
+            averages = averages.merge(res, on="Date", how="left", validate="one_to_one")
             averages["CDD"] = averages["CDD_y"].combine_first(averages["CDD_x"])
 
 
@@ -487,43 +497,39 @@ class PrescientWeather(Weather):
 
     def get_hdd(self, locations: List[location], start, end) -> dict:
 
-        assert(type(start) == str and type(end) == str)
-
+        assert (type(start) == str and type(end) == str)
         start_dt = datetime.strptime(start, "%Y-%m-%d")
         end_dt = datetime.strptime(end, "%Y-%m-%d")
-
-        if start_dt < end_dt:
+        if end_dt < start_dt:
             raise ValueError("Start date must be before end date.")
 
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
-        res = df.merge(self.raw_df, on="Date", how="left")
-        if "hdd" in res.columns:
-            res = res[["Date", "hdd"]]
-            res = res.rename(columns={"hdd": "HDD"})
-        elif "HDD" in res.columns:
-            res = res[["Date", "HDD"]]
-        else:
-            raise ValueError("HDD column not found in dataframe.")
-
+        res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
+        res = res[["Date", "Population HDD"]]
+        res = res.rename(columns={"Population HDD": "HDD"})
+        assert (type(start) == str and type(end) == str)
         min_time, max_time = self.get_min_and_max_time_span()
-        if min_time >= start or max_time <= end:
+        if min_time >= start_dt or max_time <= end_dt:
             averages = calculate_average_for_missing(res,
-                                                     start,
-                                                     end,
+                                                     start_dt,
+                                                     end_dt,
                                                      min_time,
                                                      max_time,
                                                      "HDD")
-            averages = averages.merge(res, on="Date", how="left")
+
+            averages = averages.merge(res, on="Date", how="left", validate="one_to_one")
             averages["HDD"] = averages["HDD_y"].combine_first(averages["HDD_x"])
+
             res = averages
         else:
             pass
 
         assert ("Date" in res.columns)
-        assert ("CDD" in res.columns)
+        assert ("HDD" in res.columns)
 
         return res
+
 
     def get_type_of_temperature(self) -> TemperatureType:
         return TemperatureType.CELCIUS

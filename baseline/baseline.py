@@ -33,6 +33,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from scipy import stats
 import calendar
+from date_utils.date_utils import get_number_days_in_month
 
 
 
@@ -187,7 +188,7 @@ def calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
     print(f"Error divided by total mag is {error/total_mag}")
 
     params = {"slope": res.slope, "intercept": res.intercept}
-    return params
+    return params, 100 * error / total_mag
 
 def calculate_eia_normal_monthly_values(normal_start_date,
                                         normal_end_date,
@@ -252,6 +253,10 @@ def convert_date_str_to_datetime(date_str: str):
 
     return datetime.datetime.strptime(date_str, "%Y-%m-%d")
 
+
+def check_if_last_day_in_month(date: datetime.datetime):
+    return date.day == calendar.monthrange(date.year, date.month)[1]
+
 def check_preconditions(start_date: str,
                         end_date: str,
                         eia_start_date: str,
@@ -259,7 +264,6 @@ def check_preconditions(start_date: str,
                         normal_start_date: str,
                         normal_end_date: str,
                         current_date: str):
-
 
 
     start_datetime = convert_date_str_to_datetime(start_date)
@@ -279,6 +283,11 @@ def check_preconditions(start_date: str,
     start_less_than_eia_start = (start_datetime < eia_start_datetime)
     eia_start_less_than_current = (eia_start_datetime < current_datetime)
 
+    #Check last day of month.
+    end_datetime_last_day_in_month = check_if_last_day_in_month(end_datetime)
+    eia_end_datetime_last_day_in_month = check_if_last_day_in_month(eia_end_datetime)
+    normal_end_datetime_last_day_in_month = check_if_last_day_in_month(normal_end_datetime)
+
 
     precondition = [
         primary_ordering,
@@ -289,7 +298,10 @@ def check_preconditions(start_date: str,
         start_less_than_current,
         current_less_than_end,
         start_less_than_eia_start,
-        start_less_than_current
+        start_less_than_current,
+        end_datetime_last_day_in_month,
+        eia_end_datetime_last_day_in_month,
+        normal_end_datetime_last_day_in_month
     ]
 
     checks = {"start_datetime <= end_datetime": primary_ordering,
@@ -299,7 +311,10 @@ def check_preconditions(start_date: str,
               "start_datetime < current_datetime": start_less_than_current,
               "current_datetime < end_datetime": current_less_than_end,
               "start_datetime < eia_start_datetime": start_less_than_eia_start,
-              "eia_start_datetime < current_datetime": eia_start_less_than_current}
+              "eia_start_datetime < current_datetime": eia_start_less_than_current,
+              "end_datetime_last_day_in_month": end_datetime_last_day_in_month,
+              "eia_end_datetime_last_day_in_month": eia_end_datetime_last_day_in_month,
+              "normal_end_datetime_last_day_in_month": normal_end_datetime_last_day_in_month}
 
     return all(precondition), checks
 
@@ -318,7 +333,24 @@ def calculate_eia_daily_value(eia_monthly_value: float,
                               date: datetime.datetime,
                               component_type: ComponentType,
                               month,
-                              year):
+                              year,
+                              params):
+    """
+    Calculates the daily values given an (1) eia_monthly_value, (2)
+    weather_values, (3) date, (4) component_type, (5) month,
+    and (6) year.
+
+    I need to calculate the daily value, given the weather and a prediction for the monthly value.
+
+    My idea was that we would proportion out the consumption via HDD's. This does not work when
+    the major element is the minimum consumption.
+
+    Fit a global model, that provides us with a sensitivity and the intercept.
+
+
+
+    """
+
 
     dates_in_month = get_dates_in_month(month, year)
     weather_dates_in_month = weather_values["Date"].unique()
@@ -330,15 +362,18 @@ def calculate_eia_daily_value(eia_monthly_value: float,
     month = date.month
     day = date.day
 
+    slope = params["slope"]
     degree_day_type = component_to_type[component_type]
-    total_dd = weather_values[degree_day_type].sum()
-    eia_per_dd = eia_monthly_value / total_dd
-    weather_values["eia_daily"] = weather_values[degree_day_type].apply(lambda dd: eia_per_dd * dd)
+    weather_values["eia_implied_weather"] = weather_values[degree_day_type].apply(lambda dd: slope * dd)
+    missing_eia = eia_monthly_value - weather_values["eia_implied_weather"].sum()
+    min_consumption = missing_eia / len(dates_in_month)
+    weather_values["eia_daily"] = weather_values[degree_day_type].apply(lambda dd: slope * dd + min_consumption)
+
     eia_daily_value = weather_values.query(f"Month == {month} "
                                            f"and Year == {year} "
                                            f"and Day == {day}")["eia_daily"].iloc[0]
 
-    return float(eia_daily_value)
+    return eia_daily_value
 
 def calculate_eia_daily_values_with_params(eia_monthly_values,
                                             eia_normal_values,
@@ -375,15 +410,16 @@ def calculate_eia_daily_values_with_params(eia_monthly_values,
         #NOTE: Weather values may not include all weather values for the provided month.
         weather_values_for_month = weather_values.query(f"Month == {month} and Year == {year}")
         if is_between(date, eia_start_date, eia_end_date):
-            eia_monthly_values = eia_monthly_values.query(f"Month == {month} and Year == {year}")
-            if len(eia_monthly_values) == 1:
+            eia_monthly_values_for_month = eia_monthly_values.query(f"Month == {month} and Year == {year}")
+            if len(eia_monthly_values_for_month) == 1:
                 eia_monthly_value = float(eia_monthly_values[state].iloc[0])
                 daily_value = calculate_eia_daily_value(eia_monthly_value,
                                                         weather_values_for_month,
                                                         date,
                                                         component_type,
                                                         month,
-                                                        year)
+                                                        year,
+                                                        params)
             elif len(eia_monthly_values) == 0:
                 eia_monthly_value = None
                 daily_value = None
@@ -395,7 +431,8 @@ def calculate_eia_daily_values_with_params(eia_monthly_values,
                                                         date,
                                                         component_type,
                                                         month,
-                                                        year)
+                                                        year,
+                                                        params)
         else:
             predicted_eia_monthly_value = (params["slope"] * weather_values_for_month["diff"].sum()
                                            + params["intercept"] +
@@ -405,7 +442,8 @@ def calculate_eia_daily_values_with_params(eia_monthly_values,
                                                     date,
                                                     component_type,
                                                     month,
-                                                    year)
+                                                    year,
+                                                    params)
         date_to_value[date] = daily_value
 
     result = pd.DataFrame.from_dict({"Date": [key for key in date_to_value],
@@ -489,12 +527,16 @@ def calculate_eia_daily_values(start_date: str,
                                            state,
                                            component_type)
 
+    assert(len(weather_values) == len(pd.date_range(start=start_date, end=end_date)))
+    assert(not weather_values[component_to_type[component_type]].isna().any())
+
     #Step 1. Calculate consumption factor normal values.
     consumption_factor_diff = calculate_consumption_factor_diff(start_date,
                                                                 end_date,
                                                                 weather_normal_values,
                                                                 weather_values,
                                                                 component_type)
+
 
     assert("Date" in consumption_factor_diff.columns)
 
@@ -529,7 +571,7 @@ def calculate_eia_daily_values(start_date: str,
     #Calculate sensitivity.
     #Step 3. Calculate sensitivity between eia monthly,
     #and consumption factor values.
-    params = calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
+    params, pct_error = calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
                                                                     eia_end_date,
                                                                     eia_monthly_diff,
                                                                     consumption_factor_diff,
@@ -557,7 +599,7 @@ def calculate_eia_daily_values(start_date: str,
                                                             state,
                                                             component_type)
 
-    return daily_eia_values
+    return daily_eia_values, pct_error
 
 
 if __name__ == "__main__":
