@@ -19,15 +19,22 @@ component_type_to_component_name = {ComponentType.RESIDENTIAL: "Residential",
 
 def check_near_consumption_value(state: str,
                                  daily_values,
-                                 component_type: ComponentType):
+                                 component_type: ComponentType,
+                                 number_to_check=20):
+
+    if number_to_check == 0:
+        return 100
 
 
-    sampled = daily_values.sample(n=10)
+    sampled = daily_values.sample(n=min(number_to_check, len(daily_values)))
     total = 0
     num_accurate = 0
     for index, row in sampled.iterrows():
         date = row["Date"]
-        candidate_daily_value = float(row["Value"])
+        try:
+            candidate_daily_value = float(row["Value"])
+        except:
+            continue
         year = date.year
         month = date.month
         first_date_of_year_str = f"{year}-01-01"
@@ -56,9 +63,13 @@ def check_near_consumption_value(state: str,
                 pass
             else:
                 daily_value = monthly_value / 30
-                if np.isclose(daily_value, candidate_daily_value, rtol=0.3):
+                if np.isclose(daily_value, candidate_daily_value, rtol=0.4):
                     num_accurate += 1
                 total += 1
+
+
+    if total == 0:
+        return 0
 
     return num_accurate / total * 100
 

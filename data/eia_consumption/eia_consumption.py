@@ -21,6 +21,8 @@ Notes:
 
 
 import os
+import time
+
 import pandas as pd
 import requests
 import logging
@@ -41,8 +43,58 @@ from scipy import integrate
 import calendar
 import matplotlib.pyplot as plt
 from data.eia_consumption.global_configurations import working_directory_location
-
 from ..weather import get_weather_data
+import boto3
+from credentials.credentials import get_access_key, get_secret_access_key, get_file_name, get_name_of_s3_bucket
+from io import StringIO
+
+
+def download_dataframe_from_s3_bucket():
+
+
+    s3 = boto3.resource('s3',
+                        aws_access_key_id=get_access_key(),
+                        aws_secret_access_key=get_secret_access_key())
+    bucketname = get_name_of_s3_bucket()
+    filename = get_file_name()
+
+    obj = s3.Object(bucketname, filename)
+
+    start = time.time()
+    body = obj.get()['Body'].read()
+    end = time.time()
+    print(f"Difference in Time is: {end - start}")
+
+
+
+    data_str = body.decode('utf-8')
+    daily_df = pd.read_csv(StringIO(data_str))
+    daily_df_columns = list(daily_df.columns)
+    daily_df_columns.remove("Unnamed: 0")
+    daily_df = daily_df.filter(items=daily_df_columns)
+
+
+
+    return daily_df
+
+def upload_df_to_s3_bucket(df: pd.DataFrame):
+    """
+    Uploads dataframe to s3 bucket.
+
+    """
+
+    from io import StringIO
+
+    bucket_name = get_name_of_s3_bucket()  # already created on S3
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer)
+    s3_resource = boto3.resource('s3',
+                                 aws_access_key_id=get_access_key(),
+                                 aws_secret_access_key=get_secret_access_key()
+                                 )
+    filename = get_file_name()
+    s3_resource.Object(bucket_name, filename).put(Body=csv_buffer.getvalue())
+
 
 def get_eia_consumption_data():
 
@@ -265,6 +317,9 @@ def get_eia_consumption_data_bulk_df(start_date_str: str,
 
     eia_consumption_df = pd.DataFrame.from_records(data)
 
+    if not "area-name" in eia_consumption_df:
+        raise ValueError("area-name column is not present in the dataframe")
+
     eia_consumption_df["standard_state_name"] = eia_consumption_df["area-name"].apply(
         lambda area_name: convert_native_name_to_standard_state_name(area_name))
 
@@ -350,6 +405,8 @@ def query_eia_consumption_data(eia_consumption_df,
     """
     Query the dataframe for the particular component.
 
+
+
     """
 
     eia_native_component_column_name = "process-name"
@@ -359,6 +416,15 @@ def query_eia_consumption_data(eia_consumption_df,
 
     return eia_consumption_df_for_component_name
 
+def verify_dataframe_has_target_info(df, start_date, end_date):
+
+    start_period = start_date[:-3]
+    end_period = end_date[:-3]
+    target_has_info = ("period" in df.columns and
+                    start_period in df["period"].astype(str).unique()
+                    and end_period in df["period"].astype(str).unique())
+
+    return target_has_info
 
 def get_eia_consumption_data_in_pivot_format(start_date = "2000-01-01",
                                              end_date = "2024-10-01",
@@ -369,15 +435,20 @@ def get_eia_consumption_data_in_pivot_format(start_date = "2000-01-01",
     The method calls EIA multiple times to get results.
     """
 
-    #eia_consumption_df = get_eia_consumption_data_df(start_date = start_date,
-    #                                                 end_date = end_date,
-    #
+    if not create_new_data:
+        cannot_download = False
+        df = None
+        try:
+            df = download_dataframe_from_s3_bucket()
+            verified = verify_dataframe_has_target_info(df, start_date, end_date)
+            if verified:
+                return df
+        except:
+            cannot_download = True
 
     eia_consumption_df = get_eia_consumption_data_bulk_df_yearly(start_date,
                                                                 end_date,
                                                                 create_new_data=create_new_data)
-
-
 
     eia_consumption_df["Units"] = "MCCF"
 
@@ -388,8 +459,12 @@ def get_eia_consumption_data_in_pivot_format(start_date = "2000-01-01",
                                                   columns='standard_state_name',
                                                   values='value')
 
-
     eia_residential_df.reset_index(inplace=True)
+    try:
+        upload_df_to_s3_bucket(eia_residential_df)
+    except Exception as e:
+        logging.critical(f"Could not upload dataframe to s3 bucket. The exception is {e}")
+
     return eia_residential_df
 
 

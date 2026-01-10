@@ -1,24 +1,7 @@
 """
 The following aims to be the baseline technique that I think is good enough to commercialize.
 
-TODO: There are 8 functions that need to be implemented to implement the minimum viable
-TODO: prototype.
 
-TODO: What is the key goal here?
-TODO: We will also need to put this in the AWS API.
-TODO: We should look to keep track of the performance
-TODO: characteristics of the API.
-#TODO: As I write this code, what shoulpd we be able to consider:
-    #TODO: (1) We want everything to follow strong schemas
-    #TODO: (2) We would like to only produce a result if it is accurate.
-        #TODO: (3) This will require checking of the input data for errors.
-        #TODO: (4) This will require having weather data hooked up.
-        #TODO: (5) We will need to handle how we calculate the consumption values.
-        #TODO: (6) If the consumption values are in the future, then they will be
-        #TODO: provided in the future.
-        #TODO: As such, I think it will be good to parameterize the code, via
-        #TODO: looking at the current day, and what divides the past, current and (2)
-        #TODO:
 
 """
 import matplotlib.pyplot as plt
@@ -35,6 +18,8 @@ from scipy import stats
 import calendar
 from date_utils.date_utils import get_number_days_in_month
 from utils import get_base_path
+from scipy.optimize import least_squares
+
 
 
 class ComponentType(Enum):
@@ -120,35 +105,19 @@ def create_normal_weather_values(normal_start_date,
     Creates the normal weather values.
 
     """
-    current_date = datetime.datetime.now()
+
     weather = None
     if component_type in [ComponentType.COMMERCIAL, ComponentType.RESIDENTIAL]:
         prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_hdd([state], normal_start_date, normal_end_date, current_date)
+        weather = prescient_weather.get_hdd([state], normal_start_date, normal_end_date)
     elif component_type in [ComponentType.ELECTRIC]:
         prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_cdd([state], normal_start_date, normal_end_date, current_date)
+        weather = prescient_weather.get_cdd([state], normal_start_date, normal_end_date)
     else:
         pass
 
-    weather = calculate_differences_for_df(weather, component_to_type[component_type])
-    weather_dict = weather[["day_of_year", "avg_dd"]].set_index("day_of_year").to_dict()["avg_dd"]
-    return weather_dict
+    return weather
 
-
-def calculate_consumption_factor_to_eia_sensitivity(start_date,
-                                                    end_date,
-                                                    eia_monthly_values,
-                                                    consumption_factor_values):
-    """
-    Calculate the eia sensitivity between (a) consumption factor and (b) eia_monthly_value
-    between the start_date and end_date.
-
-
-    """
-
-
-    pass
 
 
 
@@ -156,55 +125,32 @@ def calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
                                                             eia_end_date,
                                                             eia_monthly_values,
                                                             consumption_factor_values,
+                                                            consumption_factor_normal_values,
                                                             state,
                                                             component_type: ComponentType
                                                             ):
     """
     Calculate the consumption factor to eia sensitivity on a month-by-month basis.
+
+    1. eia_monthly_values represents eia minus the average eia value.
+    2. consumption_factor_values are weather values of either HDD/CDD type
+
+
     """
 
+    def calculate_residuals(theta, **data):
 
-    consumption_factor_by_month = consumption_factor_values.groupby(["Year", "Month"])["diff"].sum().reset_index()
+        eia_monthly_values = data["eia_monthly_values"]
+        consumption_factor_values = data["consumption_factor_values"]
+        consumption_factor_normal_values = data["consumption_factor_normal_values"]
 
-    comparison = eia_monthly_values.merge(consumption_factor_by_month,
-                                           on=["Year", "Month"],
-                                           how="inner", suffixes=("_eia", "_consumption_factor"))
 
-    comparison_with_nan_dropped = comparison.dropna()
-    if len(comparison_with_nan_dropped) > 0.8 * len(comparison):
-        comparison = comparison_with_nan_dropped
-    else:
-        raise RuntimeError("Insufficient data to calculate sensitivity. Too many nans")
 
-    working_path = get_base_path()
-    if os.path.exists(os.path.join(working_path)):
-        try:
-            comparison.to_csv(os.path.join(working_path,
-                                           "calibration_datasets",
-                                           f"{state}_{component_type}_monthly_comparison.csv"))
-        except:
-            pass
+        return np.array([0,0])
 
-    comparison.plot(x="diff_consumption_factor", y="diff_eia", kind="scatter")
-    try:
-        plt.savefig(f"{state}_{component_type}_diff.png")
-    except:
-        pass
 
-    X = comparison["diff_consumption_factor"].values
-    y = comparison["diff_eia"].values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
-    res = stats.linregress(X_train, y_train)
-    y_predict = res.intercept + res.slope * X_test
 
-    error = np.sum(np.abs(y_test - y_predict))
-    total_mag = np.sum(np.abs(y_test))
-
-    print(f"Error divided by total mag is {error/total_mag}")
-
-    params = {"slope": res.slope, "intercept": res.intercept}
-    return params, 100 * error / total_mag
 
 def calculate_eia_normal_monthly_values(normal_start_date,
                                         normal_end_date,
@@ -590,39 +536,25 @@ def calculate_eia_daily_values(start_date: str,
     assert(len(weather_values) == len(pd.date_range(start=start_date, end=end_date)))
     assert(not weather_values[component_to_type[component_type]].isna().any())
 
-    #Step 1. Calculate consumption factor normal values.
-    consumption_factor_diff = calculate_consumption_factor_diff(start_date,
-                                                                end_date,
-                                                                weather_normal_values,
-                                                                weather_values,
-                                                                component_type)
-
-
-    assert("Date" in consumption_factor_diff.columns)
-
     #################################################################
     #Begin EIA Calculation
-    # Step 3: Calculate eia normal values.
     eia_normal_values = calculate_eia_normal_monthly_values(normal_start_date,
                                                           normal_end_date,
                                                           state,
                                                           component_type)
 
     assert(type(eia_normal_values) == dict)
-
-
     #Step 3: Calculate eia monthly values.
     eia_monthly_values = calculate_eia_monthly_values(eia_start_date,
                                                       eia_end_date,
                                                       state,
                                                       component_type)
 
-
     eia_monthly_diff = calculate_eia_values_diff(eia_start_date,
                                                 eia_end_date,
                                                 eia_normal_values,
                                                 eia_monthly_values,
-                                                 state)
+                                                state)
 
     assert("Date" in eia_monthly_diff.columns)
 
@@ -632,11 +564,12 @@ def calculate_eia_daily_values(start_date: str,
     #Step 3. Calculate sensitivity between eia monthly,
     #and consumption factor values.
     params, pct_error = calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
-                                                                    eia_end_date,
-                                                                    eia_monthly_diff,
-                                                                    consumption_factor_diff,
-                                                                     state,
-                                                                     component_type)
+                                                                                eia_end_date,
+                                                                                eia_monthly_diff,
+                                                                                weather_values,
+                                                                                weather_normal_values,
+                                                                                state,
+                                                                                component_type)
 
 
     #################################################################

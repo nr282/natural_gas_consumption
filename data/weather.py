@@ -19,7 +19,14 @@ TODO: After getting New York setup, we can move on to other states.
 """
 
 import pandas as pd
-import python_weather
+from pymc.variational.callbacks import relative
+
+try:
+    import python_weather
+except Exception as e:
+    print("Could not import python_weather.")
+
+
 from meteostat import Point, Daily
 from datetime import datetime, timedelta
 import os
@@ -29,7 +36,8 @@ from abc import ABC, abstractmethod
 from typing import List, Union, Optional
 from collections import namedtuple
 
-from data.eia_consumption.eia_geography_mappings import abbrev_to_us_state, us_state_to_abbrev
+from data.eia_consumption.eia_geography_mappings import abbrev_to_us_state, us_state_to_abbrev, \
+    us_state_to_abbrev_supported_by_prescient
 from location import raw_name_to_standard_name, get_list_of_standardizied_name
 import logging
 from .mathematical_models_natural_gas import calculate_hdd, calculate_cdd, TemperatureType
@@ -37,7 +45,8 @@ from utils import *
 from data.weather_mod.forecast.acquire_prescient import get_weather_data_for_all_states, get_weather_data_for_state
 import requests
 from io import StringIO
-
+from credentials.credentials import get_access_key, get_secret_access_key
+import boto3
 
 
 location = namedtuple('Location', ['Latitude', 'Longitude'])
@@ -97,7 +106,7 @@ def get_weather_data(start: datetime,
     return pivot_complete_data
 
 
-def format_df(forecast_df: pd.DataFrame) -> pd.DataFrame:
+def format_df(forecast_df: pd.DataFrame, state: str) -> pd.DataFrame:
 
 
     forecast_df["Region Type"] = "STATE"
@@ -106,6 +115,7 @@ def format_df(forecast_df: pd.DataFrame) -> pd.DataFrame:
                                               "region": "Region",
                                               "pophdd": "Population HDD"})
     forecast_df["Forecast Type"] = "Forecast"
+    forecast_df["Region"] = state
 
     return forecast_df
 
@@ -115,6 +125,12 @@ def get_prescient_weather_data_via_api(state: str,
     Accumulate both forecast and historical data for the given state.
 
     """
+
+    try:
+        df = download_dataframe_from_s3_bucket()
+        return df
+    except Exception as e:
+        logging.error(f"Could not download dataframe from s3 bucket. Error: {e}")
 
 
     if state in abbrev_to_us_state:
@@ -130,19 +146,32 @@ def get_prescient_weather_data_via_api(state: str,
         data_string = data_historical.content.decode('utf-8')
         historical_df = pd.read_csv(StringIO(data_string))
         historical_df["Forecast Type"] = "Historical"
+        historical_df = historical_df.drop(columns=["Gas HDD"])
+
+        if current_date - timedelta(days=1) > datetime.strptime(historical_df["Date"].max(), "%Y-%m-%d"):
+            logging.critical("Degree Day History does not contain the most recent data from a few days ago")
+
+
+
 
     forecast_cdd_df = get_weather_data_for_state(current_date, state, "popcdd")
+    forecast_cdd_df = forecast_cdd_df.drop(columns=["initdate", "region"])
     forecast_hdd_df = get_weather_data_for_state(current_date, state, "pophdd")
-    forecast_hdd_df = forecast_hdd_df.drop(columns=["fcstdate", "initdate", "region"])
+    forecast_hdd_df = forecast_hdd_df.drop(columns=["initdate", "region", "fcstdate"])
     forecast_df = pd.concat([forecast_hdd_df, forecast_cdd_df], axis=1)
-    forecast_df = format_df(forecast_df)
+    forecast_df = format_df(forecast_df, state)
     df = pd.concat([historical_df, forecast_df])
+    df = df.drop(columns=["fcstdate"])
     df = df[df["Region Type"] == "STATE"]
     df = df[df["Region"] == state]
 
     assert(df.Date.value_counts().max() == 1)
     assert("Historical" in df["Forecast Type"].unique())
     assert("Forecast" in df["Forecast Type"].unique())
+
+    #Check for nans in this dataframe.
+    if len(df) != len(df.dropna()):
+        raise ValueError("There are NaNs in the dataframe.")
 
     return df
 
@@ -188,7 +217,7 @@ def get_prescient_weather_data_via_csv(state):
 
     return standardizied_df
 
-def get_prescient_weather_data(state):
+def get_prescient_weather_data(state, current_date: datetime):
     """
     Gets the prescient weather_mod data. Prescient Weather Data is a particular weather_mod
     vendor who has provided us with both csv and api access.
@@ -197,7 +226,7 @@ def get_prescient_weather_data(state):
     """
 
     try:
-        df = get_prescient_weather_data_via_api(state)
+        df = get_prescient_weather_data_via_api(state, current_date)
     except NotImplementedError:
         df = get_prescient_weather_data_via_csv(state)
     except Exception as e:
@@ -229,7 +258,7 @@ class Weather(ABC):
     def __init__(self, locations):
         self.native_name = None
         self.locations = locations
-        self.raw_df = self.acquire_native_data()
+        self.raw_df = self.acquire_native_data(locations=locations)
         self.refactor_date()
         self.refactor_locations()
         self.calculate_hdd_and_cdd()
@@ -384,10 +413,10 @@ class PyWeatherData(Weather):
     def get_min_and_max_time_span(self) -> (datetime, datetime):
         pass
 
-    def get_cdd(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+    def get_cdd(self, locations: List[location], start: datetime, end: datetime, current_date: datetime) -> pd.DataFrame:
         pass
 
-    def get_hdd(self, locations: List[location], start: datetime, end: datetime) -> dict:
+    def get_hdd(self, locations: List[location], start: datetime, end: datetime, current_date: datetime) -> dict:
 
         locations_dict = dict()
         for index, location in enumerate(locations):
@@ -457,7 +486,10 @@ class PrescientWeather(Weather):
         else:
             return None, None
 
-    def get_cdd(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+    def get_cdd(self, locations: List[location], start: datetime, end: datetime, current_date: datetime = datetime.now()) -> pd.DataFrame:
+
+        if current_date != self.current_date:
+            self.raw_df = self.acquire_native_data(locations, current_date)
 
         assert(type(start) == str and type(end) == str)
         start_dt = datetime.strptime(start, "%Y-%m-%d")
@@ -468,7 +500,14 @@ class PrescientWeather(Weather):
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
 
+        if len(self.raw_df.dropna()) != len(self.raw_df):
+            raise RuntimeError("Nans exist in weather data result")
+
         res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
+
+        if len(res.dropna()) != len(res):
+            raise RuntimeError("Nans exist in weather data result")
+
         res = res[["Date", "Population CDD"]]
         res = res.rename(columns={"Population CDD": "CDD"})
         assert(type(start) == str and type(end) == str)
@@ -483,8 +522,6 @@ class PrescientWeather(Weather):
 
             averages = averages.merge(res, on="Date", how="left", validate="one_to_one")
             averages["CDD"] = averages["CDD_y"].combine_first(averages["CDD_x"])
-
-
             res = averages
         else:
             pass
@@ -492,10 +529,27 @@ class PrescientWeather(Weather):
         assert("Date" in res.columns)
         assert("CDD" in res.columns)
 
+        if len(res.dropna()) != len(res):
+            raise RuntimeError("Nans exist in weather data result")
+
         return res
 
 
-    def get_hdd(self, locations: List[location], start, end) -> dict:
+    def get_hdd(self, locations: List[location], start: datetime, end: datetime, current_date) -> dict:
+        """
+        In the following function, I suggest a method for refactoring the codebase.
+
+            1. The goal of this code is to take raw data which is constituded for a certain
+            period of time and create and provide a best estimate using that data for
+            the specified start and end datetimes. Given that
+
+        """
+
+        if isinstance(current_date, str):
+            current_date = datetime.strptime(current_date, "%Y-%m-%d")
+
+        if current_date != self.current_date:
+            self.raw_df = self.acquire_native_data(locations[0], current_date)
 
         assert (type(start) == str and type(end) == str)
         start_dt = datetime.strptime(start, "%Y-%m-%d")
@@ -505,7 +559,21 @@ class PrescientWeather(Weather):
 
         date_range = pd.date_range(start=start, end=end, freq="D")
         df = pd.DataFrame(date_range, columns=["Date"])
+
+        if len(self.raw_df.dropna()) != len(self.raw_df):
+            raise RuntimeError("Nans exist in weather data result")
+
+
+        historical_df = self.raw_df[self.raw_df["Date"] < current_date]
+        historical_df = historical_df[historical_df["Forecast Type"] == "Historical"]
+        forecast_df = self.raw_df[self.raw_df["Date"] >= current_date]
+        forecast_df = forecast_df[forecast_df["Forecast Type"] == "Forecast"]
+
+        if not (forecast_df["Date"].min() <= historical_df["Date"].max() + timedelta(days=1)):
+            logging.critical("There is a gap between historical and forecast dataframe")
+
         res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
+
         res = res[["Date", "Population HDD"]]
         res = res.rename(columns={"Population HDD": "HDD"})
         assert (type(start) == str and type(end) == str)
@@ -520,7 +588,7 @@ class PrescientWeather(Weather):
 
             averages = averages.merge(res, on="Date", how="left", validate="one_to_one")
             averages["HDD"] = averages["HDD_y"].combine_first(averages["HDD_x"])
-
+            averages = averages.drop(columns=["HDD_x", "HDD_y"])
             res = averages
         else:
             pass
@@ -528,8 +596,10 @@ class PrescientWeather(Weather):
         assert ("Date" in res.columns)
         assert ("HDD" in res.columns)
 
-        return res
+        if len(res.dropna()) != len(res):
+            raise RuntimeError("Nans exist in weather data result")
 
+        return res
 
     def get_type_of_temperature(self) -> TemperatureType:
         return TemperatureType.CELCIUS
@@ -537,12 +607,14 @@ class PrescientWeather(Weather):
     def set_native_date_name(self, native_name: str):
         raise NotImplemented()
 
-    def acquire_native_data(self, locations=None) -> pd.DataFrame:
+    def acquire_native_data(self, locations=None, current_date: datetime = datetime.now()) -> pd.DataFrame:
 
-        if locations is None:
-            df = get_prescient_weather_data(self.locations[0])
+        if locations is not None:
+            df = get_prescient_weather_data(self.locations[0], current_date)
+            df["Date"] = pd.to_datetime(df["Date"])
+            self.current_date = current_date
         else:
-            raise NotImplemented(f"Locations passed to the function acquire native {locations}")
+            raise NotImplemented(f"Locations must be provided to acquire native data.")
         return df
 
     def get_native_date_name(self) -> str:
@@ -558,6 +630,66 @@ def test_get_weather():
     data = pyweather_data.get_standardizied_data()
     return data
 
+
+
+def get_name_of_s3_bucket():
+    return "prescient-weather-data"
+
+def get_file_name():
+    return "daily_weather_data.csv"
+
+def download_dataframe_from_s3_bucket():
+
+
+    s3 = boto3.resource('s3',
+                        aws_access_key_id=get_access_key(),
+                        aws_secret_access_key=get_secret_access_key())
+    bucketname = get_name_of_s3_bucket()
+    filename = get_file_name()
+
+    obj = s3.Object(bucketname, filename)
+    body = obj.get()['Body'].read()
+    data_str = body.decode('utf-8')
+    daily_df = pd.read_csv(StringIO(data_str))
+    daily_df_columns = list(daily_df.columns)
+    daily_df_columns.remove("Unnamed: 0")
+    daily_df = daily_df.filter(items=daily_df_columns)
+
+    return daily_df
+
+
+def upload_weather_df_to_s3_bucket(df: pd.DataFrame):
+    """
+    Uploads dataframe to s3 bucket.
+
+    """
+
+    from io import StringIO
+
+    bucket_name = get_name_of_s3_bucket()  # already created on S3
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer)
+    s3_resource = boto3.resource('s3',
+                                 aws_access_key_id=get_access_key(),
+                                 aws_secret_access_key=get_secret_access_key()
+                                 )
+    filename = get_file_name()
+    s3_resource.Object(bucket_name, filename).put(Body=csv_buffer.getvalue())
+
+
+def gather_weather_data():
+
+    start_date = "2018-01-01"
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    dates = pd.date_range(start=start_date, end=current_date, freq="D")
+    dfs = []
+    for target_date in dates:
+        for state in us_state_to_abbrev_supported_by_prescient:
+            df = get_prescient_weather_data(state, target_date)
+            dfs.append(df)
+    tot_df = pd.concat(dfs)
+    final_df = tot_df.drop_duplicates()
+    return final_df
 
 if __name__ == "__main__":
     pass

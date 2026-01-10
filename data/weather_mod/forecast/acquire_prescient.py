@@ -8,7 +8,7 @@ import requests
 import pandas as pd
 from typing import TypeVar, TypedDict
 from data.eia_consumption.eia_geography_mappings import us_state_to_abbrev
-
+import datetime
 
 
 class PrescientWeatherDataResponse(TypedDict):
@@ -123,7 +123,9 @@ allwoable_regions = ["CONUS",
                      "WY"]
 
 
-def acquire_prescient_weather(region: str, degree_day_type: str):
+def acquire_prescient_weather(region: str,
+                              degree_day_type: str,
+                              init_date: str):
 
     print(f"Acquiring weather data for region: {region}")
     bearer_token = "JV55O8qHDHKRr1pReHCexxIAc0DL7DAG"
@@ -132,7 +134,7 @@ def acquire_prescient_weather(region: str, degree_day_type: str):
         "accept": "application/json"  # Optional: Include if sending JSON data
     }
 
-    response = requests.get(f"https://fastapi.worldclimateservice.com/tm-api/v3/forecast/degreeday/mediumrange/daily/ecmwf00z/{degree_day_type}/{region}?climo=10&numfcst=1",
+    response = requests.get(f"https://fastapi.worldclimateservice.com/tm-api/v3/forecast/degreeday/mediumrange/daily/ecmwf00z/{degree_day_type}/{region}?climo=10&numfcst=1&initdate={init_date}",
                             headers=headers)
 
 
@@ -183,16 +185,25 @@ def parse_response(prescient_weather_response: PrescientWeatherDataResponse,
 
     return df
 
-
 def get_weather_data_for_state(init_date: str, region: str, degree_day_type: str) -> pd.DataFrame:
 
-    response = acquire_prescient_weather(region, degree_day_type)
+    if isinstance(init_date, datetime.datetime):
+        init_date = datetime.datetime.strftime(init_date, "%Y-%m-%d")
+
+    response = acquire_prescient_weather(region, degree_day_type, init_date)
     if response.status_code != 200 or response.text == "":
-        print(f"Not able to acquire state {region}")
-        return pd.DataFrame([])
+        raise RuntimeError(f"Not able to acquire state {region}. Response status code is: {response.status_code}. Response text is: {response.text}.")
     response = response.json()
     response = parse_prescient_weather_data_response(response)
     df = parse_response(response, degree_day_type)
+
+    if len(df) != len(df.dropna()):
+        raise ValueError(f"Nans exist in the dataframe for the"
+                         f" dataframe parameterizied around"
+                         f" {init_date} and region {region} and degree day type {degree_day_type}")
+
+
+
     return df
 
 def get_weather_data_for_all_states(init_date: str, degree_day_type: str):
