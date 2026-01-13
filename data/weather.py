@@ -126,6 +126,9 @@ def get_prescient_weather_data_via_api(state: str,
 
     """
 
+    if type(current_date) == str:
+        current_date = datetime.strptime(current_date, "%Y-%m-%d")
+
     try:
         df = download_dataframe_from_s3_bucket()
         return df
@@ -273,7 +276,7 @@ class Weather(ABC):
         pass
 
     @abstractmethod
-    def get_temperature(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+    def get_temperature(self, locations: List[location], start: datetime, end: datetime, current_date: datetime) -> pd.DataFrame:
         """
         Get temperature for a list of locations from (1) start datetime to (2) end datetime.
         """
@@ -401,7 +404,7 @@ class PyWeatherData(Weather):
     def get_standardizied_data(self):
         return self.df
 
-    def get_temperature(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
+    def get_temperature(self, locations: List[location], start: datetime, end: datetime, current_date: datetime) -> pd.DataFrame:
         pass
 
     def get_locations(self) -> List[location]:
@@ -465,8 +468,61 @@ class PrescientWeather(Weather):
     def get_standardizied_data(self):
         raise NotImplemented()
 
-    def get_temperature(self, locations: List[location], start: datetime, end: datetime) -> pd.DataFrame:
-        raise NotImplemented()
+    def get_temperature(self, locations: List[location], start: datetime, end: datetime, current_date: datetime) -> pd.DataFrame:
+
+
+        if current_date != self.current_date:
+            self.raw_df = self.acquire_native_data(locations, current_date)
+            self.raw_df = self.raw_df.rename(columns={"Population HDD": "HDD",
+                                                      "Population CDD": "CDD"})
+            self.raw_df["Temperature"] = self.raw_df.apply(lambda row: 65 + row["CDD"] if row["CDD"] > 0 else 65 - row["HDD"], axis=1)
+
+
+
+        assert (type(start) == str and type(end) == str)
+        start_dt = datetime.strptime(start, "%Y-%m-%d")
+        end_dt = datetime.strptime(end, "%Y-%m-%d")
+        if end_dt < start_dt:
+            raise ValueError("Start date must be before end date.")
+
+        date_range = pd.date_range(start=start, end=end, freq="D")
+        df = pd.DataFrame(date_range, columns=["Date"])
+
+        if len(self.raw_df.dropna()) != len(self.raw_df):
+            raise RuntimeError("Nans exist in weather data result")
+
+        res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
+        res = res[["Date", "Temperature"]]
+        assert (type(start) == str and type(end) == str)
+        min_time, max_time = self.get_min_and_max_time_span()
+        if min_time >= start_dt or max_time <= end_dt:
+            averages = calculate_average_for_missing(res,
+                                                     start_dt,
+                                                     end_dt,
+                                                     min_time,
+                                                     max_time,
+                                                     "Temperature")
+
+            averages = averages.merge(res, on="Date", how="left", validate="one_to_one")
+            averages["Temperature"] = averages["Temperature_y"].combine_first(averages["Temperature_x"])
+            averages = averages.drop(["Temperature_y", "Temperature_x"], axis=1)
+            res = averages
+        else:
+            pass
+
+        assert ("Date" in res.columns)
+        assert ("Temperature" in res.columns)
+
+        if len(res.dropna()) != len(res):
+            raise RuntimeError("Nans exist in weather data result")
+
+        res["Day"] = res.Date.dt.day
+        res["Month"] = res.Date.dt.month
+        res["Year"] = res.Date.dt.year
+
+        return res
+
+
 
     def get_locations(self) -> List[location]:
         raise NotImplemented()

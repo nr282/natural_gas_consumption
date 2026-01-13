@@ -4,7 +4,8 @@ import os
 def get_base_path():
 
     potential_paths = ["C:\\Users\\nr282\\PycharmProjects\\PythonProject4",
-                       "/home/ec2-user/natural_gas_consumption"]
+                       "/home/ec2-user/natural_gas_consumption",
+                       "/var/task/"] #/var/task is the lambda deployment.
 
     actual_path = None
     for pot_path in potential_paths:

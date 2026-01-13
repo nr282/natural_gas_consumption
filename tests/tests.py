@@ -39,6 +39,7 @@ import requests
 from deployment.external.api_call import call_predict_gas_api, test_api_gateway, get_request_with_authentication
 from data.eia_consumption.eia_consumption import get_eia_consumption_data_in_pivot_format
 from dateutil.relativedelta import relativedelta
+from baseline.baseline_nonlinearity import calculate_eia_daily_values_with_nonlinear_fitting, plot_theta_calc
 
 
 from models.seasonality.seasonality import (
@@ -79,6 +80,17 @@ class TestResidentialConsumption(unittest.TestCase):
         current_date = "2025-12-31"
         prescient_weather = PrescientWeather([state])
         weather = prescient_weather.get_cdd([state], start_date, end_date, current_date)
+        self.assertFalse(weather.isnull().any().any())
+
+
+    def test_prescient_weather_temperature(self):
+
+        state = "Virginia"
+        start_date = "2023-01-01"
+        end_date = "2027-12-31"
+        current_date = "2025-12-31"
+        prescient_weather = PrescientWeather([state])
+        weather = prescient_weather.get_temperature([state], start_date, end_date, current_date)
 
         self.assertFalse(weather.isnull().any().any())
 
@@ -265,6 +277,8 @@ class TestResidentialConsumption(unittest.TestCase):
             result, status_code = test_api_gateway(response.text, headers, result=response)
             self.assertEqual(status_code, "Success")
 
+
+
     def test_s3_bucket_upload(self):
         """
         Test aims to see if the s3 bucket upload is proper.
@@ -292,6 +306,8 @@ class TestResidentialConsumption(unittest.TestCase):
         end_time = time.time()
         time_elapsed = end_time - start_time
         self.assertLess(time_elapsed, 2)
+
+
 
 
     def test_s3_bucket_download(self):
@@ -322,6 +338,35 @@ class TestResidentialConsumption(unittest.TestCase):
 
         df = download_dataframe_from_s3_bucket()
 
+
+    def test_baseline_nonlinear(self):
+
+        #Maine: 52
+        #New York: 68
+        #Texas: 54
+        #Florida: 55.26
+        #Louisiana: 56
+        #Michigan: 59
+        #New Jersey: 60
+        #Georgia: 66.1
+        #Massachusetts: 57.184
+
+        daily_values = calculate_eia_daily_values_with_nonlinear_fitting("2023-01-01",
+                                                                      "2027-12-31",
+                                                                      "2024-01-01",
+                                                                      "2024-12-31",
+                                                                      "2010-01-01",
+                                                                      "2020-12-31",
+                                                                      "2026-01-01",
+                                                                      ComponentType.RESIDENTIAL,
+                                                                      "Massachusetts")
+
+        self.assertTrue(len(daily_values) > 0)
+
+
+    def test_baseline_nonlinear_plotting(self):
+
+        plot_theta_calc()
 
 
 class TestSeasonality(unittest.TestCase):

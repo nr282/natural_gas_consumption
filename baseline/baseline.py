@@ -1,25 +1,6 @@
 """
 The following aims to be the baseline technique that I think is good enough to commercialize.
 
-TODO: There are 8 functions that need to be implemented to implement the minimum viable
-TODO: prototype.
-
-TODO: What is the key goal here?
-TODO: We will also need to put this in the AWS API.
-TODO: We should look to keep track of the performance
-TODO: characteristics of the API.
-#TODO: As I write this code, what shoulpd we be able to consider:
-    #TODO: (1) We want everything to follow strong schemas
-    #TODO: (2) We would like to only produce a result if it is accurate.
-        #TODO: (3) This will require checking of the input data for errors.
-        #TODO: (4) This will require having weather data hooked up.
-        #TODO: (5) We will need to handle how we calculate the consumption values.
-        #TODO: (6) If the consumption values are in the future, then they will be
-        #TODO: provided in the future.
-        #TODO: As such, I think it will be good to parameterize the code, via
-        #TODO: looking at the current day, and what divides the past, current and (2)
-        #TODO:
-
 """
 import matplotlib.pyplot as plt
 import numpy as np
