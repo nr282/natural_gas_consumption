@@ -7,6 +7,10 @@ The following aims to be the baseline technique that I think is good enough to c
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
+from scipy.special import pbdn_seq
+from sympy.stats.rv import probability
+
 from data.weather import PrescientWeather
 import datetime
 from enum import Enum
@@ -19,13 +23,10 @@ import calendar
 from date_utils.date_utils import get_number_days_in_month
 from utils import get_base_path
 from scipy.optimize import least_squares
+from baseline.baseline import ComponentType
+from scipy.optimize import minimize
+from scipy.optimize import basinhopping
 
-
-
-class ComponentType(Enum):
-    RESIDENTIAL="RESIDENTIAL"
-    COMMERCIAL="COMMERCIAL"
-    ELECTRIC="ELECTRIC"
 
 component_to_type = dict()
 component_to_type[ComponentType.RESIDENTIAL] = "HDD"
@@ -86,15 +87,8 @@ def create_weather_values(start_date,
                           state,
                           component_type: ComponentType):
 
-    weather = None
-    if component_type in [ComponentType.COMMERCIAL, ComponentType.RESIDENTIAL]:
-        prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_hdd([state], start_date, end_date, current_date)
-    elif component_type in [ComponentType.ELECTRIC]:
-        prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_cdd([state], start_date, end_date, current_date)
-    else:
-        pass
+    prescient_weather = PrescientWeather([state])
+    weather = prescient_weather.get_temperature([state], start_date, end_date, current_date)
     return weather
 
 def create_normal_weather_values(normal_start_date,
@@ -105,20 +99,119 @@ def create_normal_weather_values(normal_start_date,
     Creates the normal weather values.
 
     """
-
-    weather = None
-    if component_type in [ComponentType.COMMERCIAL, ComponentType.RESIDENTIAL]:
-        prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_hdd([state], normal_start_date, normal_end_date)
-    elif component_type in [ComponentType.ELECTRIC]:
-        prescient_weather = PrescientWeather([state])
-        weather = prescient_weather.get_cdd([state], normal_start_date, normal_end_date)
-    else:
-        pass
+    current_date = datetime.datetime.now()
+    prescient_weather = PrescientWeather([state])
+    weather = prescient_weather.get_temperature([state],
+                                                normal_start_date,
+                                                normal_end_date,
+                                                current_date)
 
     return weather
 
 
+
+def theta_calc_complex(theta: np.ndarray, temp: float) -> float:
+    """
+    Calculation of the consumption.
+
+    TODO: I continue to like this calculation.
+    TODO: It seems to provide not great results.
+    TODO: Brute force or a better guess may be required.
+
+    :return:
+    """
+
+    ref_temp = theta[0]
+    ref_temp_2 = theta[1]
+    slope1 = theta[2]
+    slope2 = theta[3]
+
+
+
+    if temp <= ref_temp:
+        if temp <= ref_temp_2:
+            return slope1 * (ref_temp - ref_temp_2) + slope2 * (ref_temp_2 - temp)
+        else:
+            return slope1 * (ref_temp - temp)
+    else:
+        return 0.0
+
+
+def theta_calc(theta: np.ndarray, temp: float) -> float:
+    """
+    Calculation of the consumption.
+
+    TODO: I continue to like this calculation.
+    TODO: It seems to provide not great results.
+    TODO: Brute force or a better guess may be required.
+
+    :return:
+    """
+
+    ref_temp = theta[0]
+    slope1 = theta[1]
+    if temp <= ref_temp:
+        return slope1 * (ref_temp - temp)
+    else:
+        return 0.0
+
+
+def plot_theta_calc():
+
+    x = np.linspace(0, 100, 100)
+    y = [theta_calc(np.array([65,50,5,10]), x_p) for x_p in x]
+    plt.plot(x, y)
+    plt.xlabel("Temperature")
+    plt.ylabel("Consumption")
+    plt.title("Form of Temperature Versus Consumption")
+    plt.show()
+
+
+
+
+def create_loss_function(weather_data: dict, eia_monthly_values: pd.DataFrame):
+
+    def loss_function(theta: np.ndarray):
+        """
+        Maximum Likelihood Estimation for theta. In this function, we look to create
+        the maximum likelihood estimate.
+
+        In order to develop the Maximum Likelihood Estimation, we need to first calculate
+        the likelihood function.
+
+        :return:
+        """
+
+        total_abs_diff = 0
+        for i, eia_row in eia_monthly_values.iterrows():
+            year = eia_row["Year"]
+            month = eia_row["Month"]
+            eia_diff = eia_row["diff"]
+            dates_in_month = weather_data.get((year, month))
+            n = len(dates_in_month)
+            s = 0
+            for date in dates_in_month:
+
+                normal_average = 0
+                normal_values, current_temperature = dates_in_month.get(date)
+                num_normal = len(normal_values)
+                normal_sum = 0
+                for normal_date in normal_values:
+                    normal_value = normal_values.get(normal_date)
+                    normal_consumption = theta_calc(theta, normal_value)
+                    normal_sum += normal_consumption
+                normal_average = normal_sum / num_normal
+                current_consumption = theta_calc(theta, current_temperature)
+                daily_diff = current_consumption - normal_average
+
+                s += daily_diff
+
+            diff = eia_diff - s
+            total_abs_diff += abs(diff)
+
+        return total_abs_diff
+
+    return loss_function
 
 
 def calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
@@ -131,25 +224,64 @@ def calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
                                                             ):
     """
     Calculate the consumption factor to eia sensitivity on a month-by-month basis.
-
-    1. eia_monthly_values represents eia minus the average eia value.
-    2. consumption_factor_values are weather values of either HDD/CDD type
-
-
+    ------------------------------------------------------------------------------
     """
 
-    def calculate_residuals(theta, **data):
+    #TODO: Add preconditions
 
-        eia_monthly_values = data["eia_monthly_values"]
-        consumption_factor_values = data["consumption_factor_values"]
-        consumption_factor_normal_values = data["consumption_factor_normal_values"]
+    eia_start_date_dt = datetime.datetime.strptime(eia_start_date, "%Y-%m-%d")
+    eia_end_date_dt = datetime.datetime.strptime(eia_end_date, "%Y-%m-%d")
+
+    eia_monthly_values = eia_monthly_values[eia_monthly_values["Date"] >= eia_start_date_dt]
+    eia_monthly_values = eia_monthly_values[eia_monthly_values["Date"] <= eia_end_date_dt]
+    weather_monthly_values_data = dict()
+    for eia_index, row in eia_monthly_values.iterrows():
+        month = row["Month"]
+        year = row["Year"]
+        consumption_factor_values_month_year = consumption_factor_values.query(f"Month_x == {month} & Year_x == {year}")
+        consumption_factor_values_month_year_normal = consumption_factor_normal_values.query(f"Month == {month}")
+        weather_dates_to_normal_dates = dict()
+        for weather_index, weather_row in consumption_factor_values_month_year.iterrows():
+            temperature = weather_row["Temperature"]
+            date = weather_row["Date"]
+            day = weather_row["Day_y"]
+            consumption_normal_values = consumption_factor_values_month_year_normal.query(f"Day == {day}")
+            normal_values = dict()
+            for normal_index, normal_row in consumption_normal_values.iterrows():
+                normal_date = normal_row["Date"]
+                normal_temperature = normal_row["Temperature"]
+                normal_values[normal_date] = normal_temperature
+
+            weather_dates_to_normal_dates[date] = (normal_values, temperature)
+
+        weather_monthly_values_data[(year, month)] = weather_dates_to_normal_dates
+
+    loss_func = create_loss_function(weather_monthly_values_data, eia_monthly_values)
+
+
+    theta0 = np.array([30,5])
 
 
 
-        return np.array([0,0])
+    #TODO: Adjusting the temperature is critical to avoid
+    #TODO: local minimums.
+    res = basinhopping(loss_func,
+                       theta0,
+                       niter=1000,
+                       disp=True,
+                       stepsize=20,
+                       minimizer_kwargs={"method": "L-BFGS-B"},
+                       T=10000)
 
+    import logging
+    logging.info(f"Theta is provided by basinhopping: {res.x}")
 
-
+    success = res.success
+    theta_result = res.x
+    if success == True:
+        return theta_result
+    else:
+        return None
 
 
 def calculate_eia_normal_monthly_values(normal_start_date,
@@ -162,9 +294,12 @@ def calculate_eia_normal_monthly_values(normal_start_date,
 
     """
 
-    component_name = {ComponentType.RESIDENTIAL: "Residential",
-                      ComponentType.COMMERCIAL: "Commercial",
-                      ComponentType.ELECTRIC: "Electric"}[component_type]
+
+    component_type_to_component_name = {ComponentType.RESIDENTIAL: "Residential",
+                                      ComponentType.COMMERCIAL: "Commercial",
+                                      ComponentType.ELECTRIC: "Electric"}
+
+    component_name = component_type_to_component_name.get(component_type)
 
     eia_values = get_eia_consumption_data_in_pivot_format(start_date=normal_start_date,
                                                          end_date=normal_end_date,
@@ -459,15 +594,15 @@ def calculate_eia_daily_values_with_params(eia_monthly_values,
 
 
 
-def calculate_eia_daily_values(start_date: str,
-                               end_date: str,
-                               eia_start_date: str,
-                               eia_end_date: str,
-                               normal_start_date: str,
-                               normal_end_date: str,
-                               current_date: str,
-                               component_type: ComponentType,
-                               state):
+def calculate_eia_daily_values_with_nonlinear_fitting(start_date: str,
+                                                       end_date: str,
+                                                       eia_start_date: str,
+                                                       eia_end_date: str,
+                                                       normal_start_date: str,
+                                                       normal_end_date: str,
+                                                       current_date: str,
+                                                       component_type: ComponentType,
+                                                       state):
     """
     Calculates the eia daily values.
 
@@ -519,12 +654,14 @@ def calculate_eia_daily_values(start_date: str,
     #################################################################
     #Begin Weather Calculation
     #Create normal weather.
-    weather_normal_values = create_normal_weather_values(normal_start_date,
-                                                         normal_end_date,
-                                                         state,
-                                                         component_type)
+    # Get weather values.
+    weather_normal_values = create_weather_values(normal_start_date,
+                                                   normal_end_date,
+                                                   current_date,
+                                                   state,
+                                                   component_type)
 
-    assert(type(weather_normal_values) == dict)
+    assert(type(weather_normal_values) == pd.DataFrame)
 
     #Get weather values.
     weather_values = create_weather_values(start_date,
@@ -534,7 +671,8 @@ def calculate_eia_daily_values(start_date: str,
                                            component_type)
 
     assert(len(weather_values) == len(pd.date_range(start=start_date, end=end_date)))
-    assert(not weather_values[component_to_type[component_type]].isna().any())
+    assert(not weather_values["Temperature"].isna().any())
+
 
     #################################################################
     #Begin EIA Calculation
@@ -542,6 +680,8 @@ def calculate_eia_daily_values(start_date: str,
                                                           normal_end_date,
                                                           state,
                                                           component_type)
+
+
 
     assert(type(eia_normal_values) == dict)
     #Step 3: Calculate eia monthly values.
@@ -597,13 +737,4 @@ def calculate_eia_daily_values(start_date: str,
 
 if __name__ == "__main__":
 
-    daily_values = calculate_eia_daily_values("2023-01-01",
-                               "2024-12-31",
-                               "2024-01-01",
-                               "2024-12-01",
-                               "2010-01-01",
-                               "2022-12-01",
-                               "2024-01-01",
-                               "2020-01-01",
-                               ComponentType.ELECTRIC,
-                               "Virginia")
+    plot_theta_calc()

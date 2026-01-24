@@ -129,11 +129,7 @@ def get_prescient_weather_data_via_api(state: str,
     if type(current_date) == str:
         current_date = datetime.strptime(current_date, "%Y-%m-%d")
 
-    try:
-        df = download_dataframe_from_s3_bucket()
-        return df
-    except Exception as e:
-        logging.error(f"Could not download dataframe from s3 bucket. Error: {e}")
+
 
 
     if state in abbrev_to_us_state:
@@ -144,18 +140,20 @@ def get_prescient_weather_data_via_api(state: str,
         if state not in abbrev_to_us_state:
             raise ValueError(f"State {state} not found in abbrev_to_us_state.")
 
-    data_historical = requests.get("https://s2s.worldclimateservice.com/wcs/regional_degree_day_history_daily_v2025.csv")
-    if data_historical.status_code == 200:
-        data_string = data_historical.content.decode('utf-8')
-        historical_df = pd.read_csv(StringIO(data_string))
-        historical_df["Forecast Type"] = "Historical"
-        historical_df = historical_df.drop(columns=["Gas HDD"])
+    try:
+        historical_df = download_dataframe_from_s3_bucket()
+    except Exception as e:
+        data_historical = requests.get("https://s2s.worldclimateservice.com/wcs/regional_degree_day_history_daily_v2025.csv")
+        if data_historical.status_code == 200:
+            data_string = data_historical.content.decode('utf-8')
+            historical_df = pd.read_csv(StringIO(data_string))
+            historical_df["Forecast Type"] = "Historical"
+            historical_df = historical_df.drop(columns=["Gas HDD"])
 
-        if current_date - timedelta(days=1) > datetime.strptime(historical_df["Date"].max(), "%Y-%m-%d"):
-            logging.critical("Degree Day History does not contain the most recent data from a few days ago")
+            if current_date - timedelta(days=1) > datetime.strptime(historical_df["Date"].max(), "%Y-%m-%d"):
+                logging.critical("Degree Day History does not contain the most recent data from a few days ago")
 
-
-
+            upload_weather_df_to_s3_bucket(historical_df)
 
     forecast_cdd_df = get_weather_data_for_state(current_date, state, "popcdd")
     forecast_cdd_df = forecast_cdd_df.drop(columns=["initdate", "region"])
@@ -628,7 +626,8 @@ class PrescientWeather(Weather):
         if not (forecast_df["Date"].min() <= historical_df["Date"].max() + timedelta(days=1)):
             logging.critical("There is a gap between historical and forecast dataframe")
 
-        res = df.merge(self.raw_df, on="Date", how="left", validate="one_to_one")
+        raw_df = pd.concat([historical_df, forecast_df])
+        res = df.merge(raw_df, on="Date", how="left", validate="one_to_one")
 
         res = res[["Date", "Population HDD"]]
         res = res.rename(columns={"Population HDD": "HDD"})
@@ -686,13 +685,11 @@ def test_get_weather():
     data = pyweather_data.get_standardizied_data()
     return data
 
-
-
 def get_name_of_s3_bucket():
     return "prescient-weather-data"
 
 def get_file_name():
-    return "daily_weather_data.csv"
+    return "historical_daily_weather_data.csv"
 
 def download_dataframe_from_s3_bucket():
 
@@ -731,7 +728,6 @@ def upload_weather_df_to_s3_bucket(df: pd.DataFrame):
                                  )
     filename = get_file_name()
     s3_resource.Object(bucket_name, filename).put(Body=csv_buffer.getvalue())
-
 
 def gather_weather_data():
 

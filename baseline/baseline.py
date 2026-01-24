@@ -16,6 +16,8 @@ from scipy import stats
 import calendar
 from date_utils.date_utils import get_number_days_in_month
 from utils import get_base_path
+import logging
+
 
 
 class ComponentType(Enum):
@@ -493,6 +495,66 @@ def calculate_eia_daily_values_with_params(eia_monthly_values,
     return result
 
 
+def calculate_non_weather_dependent_component(params,
+                                              weather_values,
+                                              eia_values,
+                                              component_type: ComponentType,
+                                              state: str):
+    """
+    Calculates the time varying minimum consumption for a given component type.
+
+    The natural gas consumption is the addition of:
+        (1) time-dependent minimum consumption
+        (2) weather-dependent consumption
+
+    It will look to calculate the monthly time series for monthly consumption and will
+    look to state what percentage non-weather dependent component is of the total consumption.
+
+    Non-weather dependent consumption is around the 50% level.
+
+
+
+    """
+
+    weather_values_by_month = weather_values.groupby(["Year", "Month"])["HDD"].sum().reset_index()
+    weather_values_by_month["Consumption"] = weather_values_by_month["HDD"] * params["slope"]
+    weather_values_by_month.merge(eia_values, on=["Year", "Month"], how="left")
+    gas_consumption_comparison = weather_values_by_month.merge(eia_values, on=["Year", "Month"], how="left")
+    gas_consumption_comparison["non_weather_dependent_consumption"] = gas_consumption_comparison[state] - gas_consumption_comparison["Consumption"]
+    gas_consumption_comparison.plot(x="Date", y="non_weather_dependent_consumption", figsize=(12,12))
+    plt.xlabel("Date")
+    plt.ylabel("Consumption (MMCF)")
+    plt.title(f"Non-Weather Dependent Consumption Over Time For State {state}")
+    plt.savefig(f"non_weather_dependent_consumption_{state}.png")
+    plt.clf()
+
+    average_non_weather_dependent_consumption = gas_consumption_comparison.groupby("Month")["non_weather_dependent_consumption"].mean().reset_index()
+    gas_consumption_comparison = gas_consumption_comparison.merge(average_non_weather_dependent_consumption, on="Month", how="left", suffixes=("", "_average"))
+    gas_consumption_comparison["error"] = gas_consumption_comparison["non_weather_dependent_consumption"] - gas_consumption_comparison["non_weather_dependent_consumption_average"]
+    gas_consumption_comparison_average_error = gas_consumption_comparison.groupby("Month")["error"].mean().reset_index()
+    gas_consumption_comparison.plot(x="Date", y="error", figsize=(12, 12))
+    plt.title(f"Error Between Non Weather Dependent Consumption and Average Non Weather Dependent Consumption Over Time For State {state}")
+    plt.ylabel("Consumption (MMCF)")
+    plt.savefig(f"error_term_{state}.png")
+    plt.clf()
+
+    gas_consumption_comparison["pct_weather_dependent_consumption"] = gas_consumption_comparison["non_weather_dependent_consumption"].abs() / gas_consumption_comparison[state]
+    gas_consumption_comparison.plot(x="Date", y="pct_weather_dependent_consumption", figsize=(12, 12))
+    plt.title(f"Percentage of Non-Weather Dependent Consumption Over Time For State {state}")
+    plt.ylabel("Percentage")
+    plt.savefig(f"pct_non_weather_dependent_consumption_{state}.png")
+    plt.clf()
+
+
+    average_pct_natural_gas_consumption = gas_consumption_comparison["pct_weather_dependent_consumption"].mean()
+
+    logging.info("Average Percent Non-Weather Dependent Consumption: " + str(average_pct_natural_gas_consumption))
+    #For Virginia, non-weather dependent consumption amounts to around 47 percent error of the total natural
+    #gas consumption.
+
+    return weather_values_by_month
+
+
 
 def calculate_eia_daily_values(start_date: str,
                                end_date: str,
@@ -535,6 +597,9 @@ def calculate_eia_daily_values(start_date: str,
         Likewise, c_d <= etd.
 
     """
+
+    df = gather_weather_data()
+    upload_weather_df_to_s3_bucket(df)
 
     #################################################################
     ################# CHECK PRECONDITIONS ###########################
@@ -613,11 +678,23 @@ def calculate_eia_daily_values(start_date: str,
     #Step 3. Calculate sensitivity between eia monthly,
     #and consumption factor values.
     params, pct_error = calculate_consumption_factor_to_eia_sensitivity_monthly(eia_start_date,
-                                                                    eia_end_date,
-                                                                    eia_monthly_diff,
-                                                                    consumption_factor_diff,
-                                                                     state,
-                                                                     component_type)
+                                                                                eia_end_date,
+                                                                                eia_monthly_diff,
+                                                                                consumption_factor_diff,
+                                                                                 state,
+                                                                                 component_type)
+
+
+    ###############################################################
+    #Calculate non-weather dependent component, which is called the
+    #time-varying minimum consumption.
+    minimum_consumption = calculate_non_weather_dependent_component(params,
+                                                                    weather_values,
+                                                                    eia_monthly_values,
+                                                                    component_type,
+                                                                    state)
+
+
 
 
     #################################################################
@@ -646,12 +723,11 @@ def calculate_eia_daily_values(start_date: str,
 if __name__ == "__main__":
 
     daily_values = calculate_eia_daily_values("2023-01-01",
-                               "2024-12-31",
-                               "2024-01-01",
-                               "2024-12-01",
-                               "2010-01-01",
-                               "2022-12-01",
-                               "2024-01-01",
-                               "2020-01-01",
-                               ComponentType.ELECTRIC,
+                               "2025-09-30",
+                               "2023-01-01",
+                               "2025-09-30",
+                               "2019-01-01",
+                               "2022-12-31",
+                               "2025-09-30",
+                               ComponentType.RESIDENTIAL,
                                "Virginia")

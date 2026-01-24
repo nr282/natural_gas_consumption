@@ -49,7 +49,7 @@ def parse_lambda_event(event, context):
                                         headers["end_date"],
                                         "2021-01-01",
                                         "2025-06-30",
-                                        "2016-01-01",
+                                        "2010-01-01",
                                         "2020-12-31",
                                         current_date,
                                         component_types_to_enum[headers["component_type"]],

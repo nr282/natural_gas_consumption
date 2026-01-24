@@ -359,7 +359,7 @@ class TestResidentialConsumption(unittest.TestCase):
                                                                       "2020-12-31",
                                                                       "2026-01-01",
                                                                       ComponentType.RESIDENTIAL,
-                                                                      "Massachusetts")
+                                                                      "Virginia")
 
         self.assertTrue(len(daily_values) > 0)
 
